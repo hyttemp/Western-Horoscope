@@ -12,6 +12,7 @@
   <script src="./src/astronomy.browser.js"></script>
   <script src="./src/astro-houses.js"></script>
   <script src="./src/astro-angles.js"></script>
+<script src="./src/Aspect-Applying.js"></script>
 
   <style>
     :root {
@@ -77,7 +78,21 @@
     }
     button[type="submit"]:hover { opacity: 0.85; }
 
-    .right-col { display: flex; flex-direction: column; gap: 14px; }
+	.right-col { display: flex; flex-direction: column; gap: 14px; }
+
+	.chart-and-matrix {
+	  display: flex;
+	  flex-direction: row;
+	  gap: 14px;
+	  align-items: flex-end;
+	}
+	.chart-and-matrix #chart-wrapper {
+	  flex: 0 0 auto;
+	}
+	.chart-and-matrix .table-card {
+	  flex: 0 0 auto;
+	  min-width: 0;
+	}
 
     #chart-wrapper {
       background: var(--color-card);
@@ -168,6 +183,51 @@
     }
 
     .ruler-cell { color: var(--color-gold); font-weight: 600; }
+	
+	/* ── 相位矩陣 ── */
+	#aspect-matrix-table {
+	  border-collapse: collapse;
+	  font-size: 0.9rem;
+	  width: auto;
+	}
+	#aspect-matrix-table th,
+	#aspect-matrix-table td {
+	  text-align: center;
+	  vertical-align: middle;
+	  border: 1px solid rgba(255,255,255,0.06);
+	  padding: 2px;
+	  white-space: nowrap;
+	  /* 不要寫 width / height，讓 JS 動態控制 */
+	}
+	#aspect-matrix-table thead th {
+	  background: rgba(170,212,255,0.06);
+	  color: var(--color-accent);
+	  font-weight: 600;
+	  border-bottom: 1px solid var(--color-border);
+	  padding: 4px 6px;
+	  text-align: center;
+	}
+	#aspect-matrix-table tbody th {
+	  background: rgba(170,212,255,0.06);
+	  color: var(--color-accent);
+	  font-weight: 600;
+	  text-align: center;
+	  padding: 4px 6px;
+	}
+	.asp-conjunction  { background: rgba(255,255,255,0.12); color: #fff;    font-weight: 700; }
+	.asp-trine        { background: rgba(39,174,96,0.28);   color: #7ec98f; font-weight: 700; }
+	.asp-sextile      { background: rgba(65,105,225,0.28);  color: #87CEEB; font-weight: 700; }
+	.asp-square       { background: rgba(255,69,0,0.28);    color: #ff8a8a; font-weight: 700; }
+	.asp-opposition   { background: rgba(249,213,110,0.22); color: #f9d56e; font-weight: 700; }
+	.asp-quincunx     { background: rgba(192,132,252,0.22); color: #c084fc; font-weight: 700; }
+	.asp-semisextile  { background: rgba(148,163,184,0.18); color: #94a3b8; font-weight: 700; }
+	.asp-semisquare   { background: rgba(251,146,60,0.22);  color: #fb923c; font-weight: 700; }
+	.asp-sesquisquare { background: rgba(251,146,60,0.22);  color: #fb923c; font-weight: 700; }
+	.asp-quintile     { background: rgba(103,232,249,0.18); color: #67e8f9; font-weight: 700; }
+	.asp-biquintile   { background: rgba(103,232,249,0.18); color: #67e8f9; font-weight: 700; }
+	.asp-self         { background: rgba(255,255,255,0.04); color: var(--color-muted); }
+	.asp-empty        { background: transparent; }
+	
   </style>
 </head>
 <body>
@@ -322,10 +382,20 @@
 
   <div class="right-col">
 
+	<div class="chart-and-matrix">
     <div id="chart-wrapper">
       <div class="placeholder">請填寫左側資料後按「繪製星盤」</div>
     </div>
 
+        <!-- 相位矩陣 -->
+        <div class="table-card" id="aspect-matrix-card" style="display:none;">
+          <div class="table-card-head"><h3>相位矩陣 Aspect Matrix</h3></div>
+          <div class="table-scroll">
+            <table id="aspect-matrix-table"></table>
+          </div>
+        </div>
+	</div>
+		
     <div id="output-area">
 
       <div id="sunsign-card">
@@ -395,7 +465,8 @@
         <div class="table-scroll">
           <table>
             <thead><tr>
-              <th>天體1</th><th>相位</th><th>天體2</th><th>容許度</th><th>等級</th>
+              <th>天體1</th><th>相位</th><th>天體2</th><th>容許度</th><th>入/出相</th>
+            <th>等級</th>
             </tr></thead>
             <tbody id="aspects-tbody"></tbody>
           </table>
@@ -405,6 +476,8 @@
     </div>
   </div>
 </div>
+
+
 
 <script>
 // ─────────────────────────────────────────────────────────────
@@ -699,6 +772,99 @@ function calcAspects(bodyLons, includeMajor, includeMinor, orbOverrides) {
     }
   }
   return results;
+}
+
+// ── 相位矩陣 ──────────────────────────────────────────────
+var ASP_ZH = {
+  conjunction:  '合',
+  opposition:   '對',
+  trine:        '三',
+  square:       '刑',
+  sextile:      '六',
+  quincunx:     '補',
+  semisextile:  '半',
+  semisquare:   '刑',
+  sesquisquare: '倍',
+  quintile:     '五',
+  biquintile:   '雙'
+};
+
+var MATRIX_KEYS = ['sun','moon','mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto','northNode','lilith','asc','mc'];
+var MATRIX_ABBR = {
+  sun:'日', moon:'月', mercury:'水', venus:'金', mars:'火',
+  jupiter:'木', saturn:'土', uranus:'天', neptune:'海',
+  pluto:'冥', northNode:'北', lilith:'莉',
+  asc:'升', mc:'頂'
+};
+
+
+function buildAspectMatrix(allLons, inclMajor, inclMinor, orbOverrides) {
+  var table = document.getElementById('aspect-matrix-table');
+  if (!table) return;
+  table.innerHTML = '';
+
+  var keys = MATRIX_KEYS.filter(function(k){ return allLons[k] != null; });
+
+  // 建立相位查找 map
+  var aspMap = {};
+  for (var i = 0; i < keys.length; i++) {
+    for (var j = i + 1; j < keys.length; j++) {
+      var diff = Math.abs(allLons[keys[i]] - allLons[keys[j]]);
+      if (diff > 180) diff = 360 - diff;
+      var best = null, bestOrb = 999;
+      ASPECTS_DEF.forEach(function(asp) {
+        if (asp.level === 'major' && !inclMajor) return;
+        if (asp.level === 'minor' && !inclMinor) return;
+        var effectiveOrb = (orbOverrides && orbOverrides[asp.key] != null)
+          ? orbOverrides[asp.key] : asp.orb;
+        var orb = Math.abs(diff - asp.angle);
+        if (orb <= effectiveOrb && orb < bestOrb) {
+          bestOrb = orb;
+          best = asp;
+        }
+      });
+      if (best) {
+        aspMap[keys[i] + '||' + keys[j]] = best;
+        aspMap[keys[j] + '||' + keys[i]] = best;
+      }
+    }
+  }
+
+
+
+  // 表身（下三角矩陣）
+  var tbody = document.createElement('tbody');
+  keys.forEach(function(rowKey, ri) {
+    var tr = document.createElement('tr');
+    var th = document.createElement('th');
+    th.textContent = MATRIX_ABBR[rowKey] || rowKey;
+    tr.appendChild(th);
+
+    keys.forEach(function(colKey, ci) {
+      var td = document.createElement('td');
+      if (ci > ri) {
+		  td.className = 'asp-empty';
+		  td.textContent = '';
+		  td.style.border = 'none';  /* ← 右上角格子連框線也隱藏 */
+      } else if (ci === ri) {
+        td.className = 'asp-self';
+        td.textContent = MATRIX_ABBR[rowKey] || rowKey;
+      } else {
+        var asp = aspMap[rowKey + '||' + colKey];
+        if (asp) {
+          td.textContent = ASP_ZH[asp.key] || asp.symbol;  // ← 改成中文文字
+          td.className = 'asp-' + asp.key;
+          td.title = ASP_ZH[asp.key] || asp.key;
+        } else {
+          td.className = 'asp-empty';
+          td.textContent = '';
+        }
+      }
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
 }
 
 function getDashArray(name) {
@@ -1086,6 +1252,85 @@ document.getElementById('form').addEventListener('submit', function(e) {
     row.insertCell().textContent = t('house'+getHouseNumber(lon,cusps), lang);
   });
 
+  var ASPECT_ANGLE_MAP = {
+    conjunction:0, sextile:60, square:90, trine:120, opposition:180,
+    quincunx:150, semisextile:30, semisquare:45, sesquisquare:135,
+    quintile:72, biquintile:144
+  };
+
+function _dailyMotion(bodyKey, astroTime) {
+    // 平均每日速度常數（度/日）
+    var AVG_MOTION = {
+      sun:       0.9856,
+      moon:     13.1760,
+      mercury:   1.3833,
+      venus:     1.2000,
+      mars:      0.5240,
+      jupiter:   0.0831,
+      saturn:    0.0335,
+      uranus:    0.0117,
+      neptune:   0.0060,
+      pluto:     0.0040,
+      northNode:-0.0529,
+      southNode: 0.0529,
+      lilith:    0.1108,
+      asc:     0,
+      mc:      0
+    };
+
+    var base = AVG_MOTION[bodyKey];
+    if (base === undefined) return 0;
+
+    // 用 isRetrograde() 決定逆行方向
+    var _noRetro = {sun:1,moon:1,northNode:1,southNode:1,lilith:1,asc:1,mc:1};
+    if (base !== 0 && !_noRetro[bodyKey] && astroTime && typeof isRetrograde === 'function') {
+      try {
+        if (isRetrograde(bodyKey, astroTime)) {
+          base = -Math.abs(base);
+        }
+      } catch(e) {}
+    }
+
+    return base;
+  }
+
+	function _applyingText(asp, allLons, astroTime) {
+		if (typeof AspectDirection === 'undefined') return '';
+		var angle = ASPECT_ANGLE_MAP[asp.aspect];
+		if (angle === undefined) return '';
+		if (allLons[asp.body1] == null || allLons[asp.body1] === undefined) return '';
+		if (allLons[asp.body2] == null || allLons[asp.body2] === undefined) return '';
+
+		try {
+		  var isAscMc1 = (asp.body1 === 'asc' || asp.body1 === 'mc');
+		  var isAscMc2 = (asp.body2 === 'asc' || asp.body2 === 'mc');
+
+		  if (isAscMc1 || isAscMc2) {
+			// 涉及 ASC/MC：以 ASC/MC 為快速移動主體判斷
+			var ascmcLon  = isAscMc2 ? allLons[asp.body2] : allLons[asp.body1];
+			var planetLon = isAscMc2 ? allLons[asp.body1] : allLons[asp.body2];
+			// 找最近的精確相位目標點（planet ± angle）
+			var t1 = planetLon - angle;
+			var t2 = planetLon + angle;
+			var arc1 = (((t1 - ascmcLon) % 360) + 360) % 360; if (arc1 > 180) arc1 -= 360;
+			var arc2 = (((t2 - ascmcLon) % 360) + 360) % 360; if (arc2 > 180) arc2 -= 360;
+			var nearestArc = (Math.abs(arc1) <= Math.abs(arc2)) ? arc1 : arc2;
+			// ASC/MC 順行（度數增加），nearestArc > 0 = 目標在前方 = 入相
+			return nearestArc > 0 ? '入相' : '出相';
+		  } else {
+			// 普通行星對行星：用速度差判斷
+			var dm1 = _dailyMotion(asp.body1, astroTime);
+			var dm2 = _dailyMotion(asp.body2, astroTime);
+			var res = AspectDirection.calculate(
+			  { longitude: allLons[asp.body1], dailyMotion: dm1 },
+			  { longitude: allLons[asp.body2], dailyMotion: dm2 },
+			  angle, { orbLimit: 12 }
+			);
+			return res ? (res.directionZH || '') : '';
+		  }
+		} catch(e) { return ''; }
+  }
+
   var aTbody = document.getElementById('aspects-tbody');
   aTbody.innerHTML = '';
   aspects.forEach(function(asp){
@@ -1096,6 +1341,7 @@ document.getElementById('form').addEventListener('submit', function(e) {
     aspCell.className   = 'aspect-' + asp.level;
     row.insertCell().textContent = t(asp.body2, lang);
     row.insertCell().textContent = asp.orb + '°';
+    row.insertCell().textContent = _applyingText(asp, allLons, window.lastAstroTime);
     row.insertCell().textContent = asp.level==='major' ? '主要' : '次要';
   });
 
@@ -1104,6 +1350,9 @@ document.getElementById('form').addEventListener('submit', function(e) {
                  dashOpp, dashTrine, dashSquare, dashSextile,
                  orbOpp, orbTrine, orbSquare, orbSextile);
 
+  buildAspectMatrix(allLons, inclMajor, inclMinor, orbOverrides);
+  document.getElementById('aspect-matrix-card').style.display = 'block';
+  
   document.getElementById('output-area').style.display = 'block';
 });
 </script>
