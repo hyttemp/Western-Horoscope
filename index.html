@@ -1,0 +1,1111 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>西洋占星星盤</title>
+
+  <script src="./src/astrochart.js"></script>
+  <script src="./src/astronomy_math.js"></script>
+  <script src="./src/ephemeris-utilities.js"></script>
+  <script src="./src/language.js"></script>
+  <script src="./src/astronomy.browser.js"></script>
+  <script src="./src/astro-houses.js"></script>
+  <script src="./src/astro-angles.js"></script>
+
+  <style>
+    :root {
+      --color-bg:      #0f0f1a;
+      --color-surface: #1a1a2e;
+      --color-card:    #16213e;
+      --color-border:  rgba(170,212,255,0.15);
+      --color-text:    #e8e8f0;
+      --color-muted:   #8888aa;
+      --color-accent:  #aad4f5;
+      --color-gold:    #f9d56e;
+      --color-ok:      #7ec98f;
+      --color-retro:   #ff8a8a;
+      --radius:        8px;
+      --font-body:     'Segoe UI', 'Noto Sans TC', system-ui, sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font-body);
+      font-size: 14px;
+      background: var(--color-bg);
+      color: var(--color-text);
+      min-height: 100vh;
+      padding: 16px;
+    }
+    h1 { font-size: 1.5rem; color: var(--color-accent); margin-bottom: 4px; }
+    h2 { font-size: 0.85rem; color: var(--color-muted); font-weight: 400; margin-bottom: 16px; }
+    h3 { font-size: 0.9rem; color: var(--color-accent);
+         border-bottom: 1px solid var(--color-border);
+         padding-bottom: 4px; margin-bottom: 8px; }
+
+    .layout { display: grid; grid-template-columns: 340px 1fr; gap: 16px; align-items: start; }
+    @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+
+    .panel {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      padding: 16px;
+    }
+
+    .form-group { margin-bottom: 10px; }
+    label { display: block; font-size: 0.78rem; color: var(--color-muted); margin-bottom: 3px; }
+    input, select {
+      width: 100%; padding: 6px 8px;
+      background: #0f0f1a; color: var(--color-text);
+      border: 1px solid var(--color-border); border-radius: 5px;
+      font-size: 0.85rem;
+    }
+    input:focus, select:focus { outline: 2px solid var(--color-accent); border-color: transparent; }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .checkbox-row { display: flex; gap: 12px; align-items: center; margin-top: 4px; flex-wrap: wrap; }
+    .checkbox-row label { display: flex; align-items: center; gap: 4px; color: var(--color-text); font-size: 0.82rem; margin-bottom: 0; }
+
+    button[type="submit"] {
+      width: 100%; padding: 9px;
+      background: var(--color-accent); color: #0f0f1a;
+      border: none; border-radius: 6px;
+      font-size: 0.9rem; font-weight: 700; cursor: pointer;
+      margin-top: 6px; transition: opacity 0.15s;
+    }
+    button[type="submit"]:hover { opacity: 0.85; }
+
+    .right-col { display: flex; flex-direction: column; gap: 14px; }
+
+    #chart-wrapper {
+      background: var(--color-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      display: flex; justify-content: center; align-items: center;
+      padding: 12px; min-height: 200px;
+    }
+    #paper svg { max-width: 100%; height: auto; }
+
+    #sunsign-card {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px;
+      background: var(--color-card);
+      border: 1px solid var(--color-border); border-radius: var(--radius);
+    }
+    #sunsign-label { font-size: 0.75rem; color: var(--color-muted); }
+    #sunsign { font-size: 1.15rem; font-weight: 700; color: var(--color-gold); }
+
+    .table-card {
+      background: var(--color-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .table-card-head { padding: 8px 12px; border-bottom: 1px solid var(--color-border); }
+    .table-scroll { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    thead th {
+      background: rgba(170,212,255,0.06);
+      color: var(--color-accent); font-weight: 600;
+      padding: 6px 8px; text-align: left;
+      border-bottom: 1px solid var(--color-border);
+      white-space: nowrap;
+    }
+    tbody tr:nth-child(even) { background: rgba(255,255,255,0.02); }
+    tbody tr:hover { background: rgba(170,212,255,0.06); }
+    td { padding: 5px 8px; border-bottom: 1px solid rgba(255,255,255,0.04); white-space: nowrap; }
+    .retro { color: var(--color-retro); font-weight: 700; }
+    .direct { color: var(--color-ok); }
+    .aspect-major { color: var(--color-gold); }
+    .aspect-minor { color: var(--color-muted); }
+
+    .placeholder {
+      color: var(--color-muted); font-size: 0.85rem;
+      text-align: center; padding: 40px 0;
+    }
+
+    #output-area { display: none; }
+
+    .aspect-line-row {
+      display: grid;
+      grid-template-columns: auto 1fr auto auto;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 0;
+    }
+    .aspect-line-row label {
+      display: flex; align-items: center; gap: 4px;
+      color: var(--color-text); font-size: 0.82rem; margin-bottom: 0;
+      white-space: nowrap;
+    }
+    .dash-toggle {
+      display: flex; gap: 4px; align-items: center;
+    }
+    .dash-toggle label {
+      display: flex; align-items: center; gap: 3px;
+      color: var(--color-muted); font-size: 0.75rem; margin-bottom: 0;
+      cursor: pointer;
+    }
+    .dash-toggle input[type="radio"] {
+      width: auto; padding: 0;
+      accent-color: var(--color-accent);
+    }
+
+    .orb-input-wrap {
+      display: flex; align-items: center; gap: 3px;
+      white-space: nowrap;
+    }
+    .orb-input-wrap span {
+      font-size: 0.72rem; color: var(--color-muted);
+    }
+    .orb-input {
+      width: 42px !important;
+      padding: 3px 5px !important;
+      font-size: 0.78rem !important;
+      text-align: center;
+    }
+
+    .ruler-cell { color: var(--color-gold); font-weight: 600; }
+  </style>
+</head>
+<body>
+
+<h1>🌌 西洋占星星盤</h1>
+<h2>Western Horoscope Chart – AstroChart SVG 離線版</h2>
+
+<div class="layout">
+
+  <div class="panel">
+    <form id="form">
+      <div class="row2">
+        <div class="form-group">
+          <label>緯度 Latitude</label>
+          <input id="latitude" type="number" step="any" min="-90" max="90" value="25.04">
+        </div>
+        <div class="form-group">
+          <label>經度 Longitude</label>
+          <input id="longitude" type="number" step="any" min="-180" max="180" value="121.51">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>出生日期</label>
+        <input id="date" type="date">
+      </div>
+      <div class="form-group">
+        <label>出生時間（當地）</label>
+        <input id="time" type="time">
+      </div>
+      <div class="form-group">
+        <label>語言</label>
+        <select id="language-select">
+          <option value="zh" selected>中文</option>
+          <option value="en">English</option>
+          <option value="es">Español</option>
+        </select>
+      </div>
+      <div class="row2">
+        <div class="form-group">
+          <label>黃道系統</label>
+          <select id="zodiacSystem">
+            <option value="tropical">回歸黃道 Tropical</option>
+            <option value="sidereal">恆星黃道 Sidereal</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>宮位系統</label>
+          <select id="houseSystem">
+            <option value="placidus">普拉西達斯 Placidus</option>
+            <option value="equal-house">等宮 Equal House</option>
+            <option value="whole-sign">整星座宮 Whole Sign</option>
+            <option value="koch">科赫 Koch</option>
+            <option value="regiomontanus">天頂 Regiomontanus</option>
+            <option value="campanus">坎帕努斯 Campanus</option>
+            <option value="topocentric">地形 Topocentric</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>相位等級</label>
+        <div class="checkbox-row">
+          <label><input id="aspect-major" type="checkbox" checked> 主要相位</label>
+          <label><input id="aspect-minor" type="checkbox"> 次要相位</label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>星盤尺寸 (px)</label>
+        <input id="chart-size" type="number" min="400" max="900" step="50" value="600">
+      </div>
+      <div class="row2">
+        <div class="form-group">
+          <label>行星符號大小 <span id="planet-size-val">1</span>x</label>
+          <input id="planet-size" type="range" min="0.5" max="4" step="0.1" value="1"
+            oninput="document.getElementById('planet-size-val').textContent=this.value"
+            style="width:100%;accent-color:var(--color-accent)">
+        </div>
+        <div class="form-group">
+          <label>相位線粗細 <span id="aspect-stroke-val">1</span>px</label>
+          <input id="aspect-stroke" type="range" min="0.5" max="5" step="0.5" value="1"
+            oninput="document.getElementById('aspect-stroke-val').textContent=this.value"
+            style="width:100%;accent-color:var(--color-accent)">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>行星標示模式</label>
+        <div class="checkbox-row">
+          <label><input id="planet-mode-symbol" type="radio" name="planet-mode" value="symbol"> 符號</label>
+          <label><input id="planet-mode-chinese" type="radio" name="planet-mode" value="chinese" checked> 中文單字</label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>相位連線顯示</label>
+
+        <div class="aspect-line-row">
+          <label><input id="line-opposition" type="checkbox" checked> 180° 對分</label>
+          <div class="orb-input-wrap">
+            <span>容忍度</span>
+            <input id="orb-opposition" class="orb-input" type="number" min="0" max="30" step="0.5" value="6">
+            <span>°</span>
+          </div>
+          <div class="dash-toggle">
+            <label><input type="radio" name="dash-opposition" value="solid"> 實線</label>
+            <label><input type="radio" name="dash-opposition" value="dash" checked> 虛線</label>
+          </div>
+        </div>
+
+        <div class="aspect-line-row">
+          <label><input id="line-trine" type="checkbox" checked> 120° 三分</label>
+          <div class="orb-input-wrap">
+            <span>容忍度</span>
+            <input id="orb-trine" class="orb-input" type="number" min="0" max="30" step="0.5" value="6">
+            <span>°</span>
+          </div>
+          <div class="dash-toggle">
+            <label><input type="radio" name="dash-trine" value="solid" checked> 實線</label>
+            <label><input type="radio" name="dash-trine" value="dash"> 虛線</label>
+          </div>
+        </div>
+
+        <div class="aspect-line-row">
+          <label><input id="line-square" type="checkbox" checked> 90° 四分</label>
+          <div class="orb-input-wrap">
+            <span>容忍度</span>
+            <input id="orb-square" class="orb-input" type="number" min="0" max="30" step="0.5" value="6">
+            <span>°</span>
+          </div>
+          <div class="dash-toggle">
+            <label><input type="radio" name="dash-square" value="solid" checked> 實線</label>
+            <label><input type="radio" name="dash-square" value="dash"> 虛線</label>
+          </div>
+        </div>
+
+        <div class="aspect-line-row">
+          <label><input id="line-sextile" type="checkbox" checked> 60° 六分</label>
+          <div class="orb-input-wrap">
+            <span>容忍度</span>
+            <input id="orb-sextile" class="orb-input" type="number" min="0" max="30" step="0.5" value="6">
+            <span>°</span>
+          </div>
+          <div class="dash-toggle">
+            <label><input type="radio" name="dash-sextile" value="solid"> 實線</label>
+            <label><input type="radio" name="dash-sextile" value="dash" checked> 虛線</label>
+          </div>
+        </div>
+
+      </div>
+
+      <button type="submit">✦ 繪製星盤</button>
+    </form>
+  </div>
+
+  <div class="right-col">
+
+    <div id="chart-wrapper">
+      <div class="placeholder">請填寫左側資料後按「繪製星盤」</div>
+    </div>
+
+    <div id="output-area">
+
+      <div id="sunsign-card">
+        <div>
+          <div id="sunsign-label">太陽星座 Sun Sign</div>
+          <div id="sunsign"></div>
+        </div>
+        <div style="margin-left:auto; font-size:0.78rem; color:var(--color-muted);" id="asc-quick"></div>
+      </div>
+
+      <div class="table-card">
+        <div class="table-card-head"><h3 id="h-angles">天文角點 Angles</h3></div>
+        <div class="table-scroll">
+          <table>
+            <thead><tr>
+              <th></th>
+              <th id="th-asc">上升 Asc</th>
+              <th id="th-mc">天頂 MC</th>
+            </tr></thead>
+            <tbody>
+              <tr><td id="th-hd">地平度數</td><td id="asc-a"></td><td id="mc-a"></td></tr>
+              <tr><td id="th-ed">黃道度數</td><td id="asc-b"></td><td id="mc-b"></td></tr>
+              <tr><td id="th-dms">星座度分秒</td><td id="asc-c"></td><td id="mc-c"></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="table-card">
+        <div class="table-card-head"><h3>宮位 Houses</h3></div>
+        <div class="table-scroll">
+          <table>
+            <thead><tr>
+              <th>宮</th><th>起始黃道°</th><th>終止黃道°</th><th>星座</th><th>宮主星</th>
+            </tr></thead>
+            <tbody id="houses-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="table-card">
+        <div class="table-card-head"><h3>行星位置 Planets</h3></div>
+        <div class="table-scroll">
+          <table>
+            <thead><tr>
+              <th>天體</th><th>黃道°</th><th>星座</th><th>度分秒</th><th>宮位</th><th>順/逆</th>
+            </tr></thead>
+            <tbody id="bodies-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="table-card">
+        <div class="table-card-head"><h3>天體點 Points</h3></div>
+        <div class="table-scroll">
+          <table>
+            <thead><tr>
+              <th>點</th><th>黃道°</th><th>星座</th><th>度分秒</th><th>宮位</th>
+            </tr></thead>
+            <tbody id="points-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="table-card">
+        <div class="table-card-head"><h3>相位 Aspects</h3></div>
+        <div class="table-scroll">
+          <table>
+            <thead><tr>
+              <th>天體1</th><th>相位</th><th>天體2</th><th>容許度</th><th>等級</th>
+            </tr></thead>
+            <tbody id="aspects-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────
+// 【還原】頁面載入時自動填入當前日期與時間作為預設值
+// ─────────────────────────────────────────────────────────────
+(function() {
+  var now = new Date();
+  var pad = function(n) { return String(n).padStart(2,'0'); };
+  document.getElementById('date').value =
+    now.getFullYear() + '-' + pad(now.getMonth()+1) + '-' + pad(now.getDate());
+  document.getElementById('time').value =
+    pad(now.getHours()) + ':' + pad(now.getMinutes());
+})();
+
+var mod360 = EphemerisUtils.mod360;
+var mod    = EphemerisUtils.mod;
+
+// ─────────────────────────────────────────────────────────────
+// 【工具】將本地時間字串轉為 UTC Date 物件
+// 用途：供 Astronomy.AstroTime 使用（行星位置計算）
+// ─────────────────────────────────────────────────────────────
+function localToUtcDate(dateStr, timeStr, geoLon) {
+  var dp = dateStr.split('-');
+  var tp = timeStr.split(':');
+  var year   = parseInt(dp[0]);
+  var month  = parseInt(dp[1]) - 1;
+  var day    = parseInt(dp[2]);
+  var hour   = parseInt(tp[0]);
+  var minute = parseInt(tp[1]);
+  var tzOffsetHours = Math.round(geoLon / 15);
+  var localMs = Date.UTC(year, month, day, hour, minute, 0);
+  var utcMs   = localMs - tzOffsetHours * 3600000;
+  return new Date(utcMs);
+}
+
+var SIGN_DATA = [
+  {key:'aries',       symbol:'♈',start:0},  {key:'taurus',      symbol:'♉',start:30},
+  {key:'gemini',      symbol:'♊',start:60}, {key:'cancer',      symbol:'♋',start:90},
+  {key:'leo',         symbol:'♌',start:120},{key:'virgo',       symbol:'♍',start:150},
+  {key:'libra',       symbol:'♎',start:180},{key:'scorpio',     symbol:'♏',start:210},
+  {key:'sagittarius', symbol:'♐',start:240},{key:'capricorn',   symbol:'♑',start:270},
+  {key:'aquarius',    symbol:'♒',start:300},{key:'pisces',      symbol:'♓',start:330}
+];
+
+var ASPECTS_DEF = [
+  {key:'conjunction', angle:0,   orb:8, level:'major', symbol:'☌'},
+  {key:'opposition',  angle:180, orb:8, level:'major', symbol:'☍'},
+  {key:'trine',       angle:120, orb:8, level:'major', symbol:'△'},
+  {key:'square',      angle:90,  orb:8, level:'major', symbol:'□'},
+  {key:'sextile',     angle:60,  orb:6, level:'major', symbol:'⚹'},
+  {key:'quincunx',    angle:150, orb:5, level:'minor', symbol:'⚻'},
+  {key:'semisextile', angle:30,  orb:3, level:'minor', symbol:'⚺'},
+  {key:'semisquare',  angle:45,  orb:3, level:'minor', symbol:'∠'},
+  {key:'sesquisquare',angle:135, orb:3, level:'minor', symbol:'⚼'},
+  {key:'quintile',    angle:72,  orb:2, level:'minor', symbol:'Q'},
+  {key:'biquintile',  angle:144, orb:2, level:'minor', symbol:'bQ'}
+];
+
+var ASTROCHART_PLANET_MAP = {
+  sun:'Sun', moon:'Moon', mercury:'Mercury', venus:'Venus', mars:'Mars',
+  jupiter:'Jupiter', saturn:'Saturn', uranus:'Uranus', neptune:'Neptune', pluto:'Pluto',
+  northNode:'NNode', lilith:'Lilith',
+  asc:'Asc', mc:'Mc'
+};
+
+var PLANET_CHINESE = {
+  'Sun':'日', 'Moon':'月', 'Mercury':'水', 'Venus':'金', 'Mars':'火',
+  'Jupiter':'木', 'Saturn':'土', 'Uranus':'天', 'Neptune':'海',
+  'Pluto':'冥', 'NNode':'北', 'Lilith':'莉',
+  'Asc':'升', 'Mc':'頂'
+};
+
+var RULER_DISPLAY = {
+  sun:     '☉ 太陽',
+  moon:    '☽ 月亮',
+  mercury: '☿ 水星',
+  venus:   '♀ 金星',
+  mars:    '♂ 火星',
+  jupiter: '♃ 木星',
+  saturn:  '♄ 土星',
+  uranus:  '♅ 天王星',
+  neptune: '♆ 海王星',
+  pluto:   '♇ 冥王星'
+};
+
+var ANGLES_I18N = {
+  zh: {
+    sectionTitle: '天文角點 Angles',
+    thAsc:        '上升 Asc',
+    thMc:         '天頂 MC',
+    thHd:         '地平度數',
+    thEd:         '黃道度數',
+    thDms:        '星座度分秒'
+  },
+  en: {
+    sectionTitle: 'Angles',
+    thAsc:        'Ascendant',
+    thMc:         'Midheaven (MC)',
+    thHd:         'Horizon Degrees',
+    thEd:         'Ecliptic Degrees',
+    thDms:        'Sign D° M\' S"'
+  },
+  es: {
+    sectionTitle: 'Ángulos',
+    thAsc:        'Ascendente',
+    thMc:         'Medio Cielo (MC)',
+    thHd:         'Grados Horizonte',
+    thEd:         'Grados Eclíptica',
+    thDms:        'Signo G° M\' S"'
+  }
+};
+
+function updateAnglesI18n(lang) {
+  var labels = ANGLES_I18N[lang] || ANGLES_I18N['zh'];
+  document.getElementById('h-angles').textContent = labels.sectionTitle;
+  document.getElementById('th-asc').textContent   = labels.thAsc;
+  document.getElementById('th-mc').textContent    = labels.thMc;
+  document.getElementById('th-hd').textContent    = labels.thHd;
+  document.getElementById('th-ed').textContent    = labels.thEd;
+  document.getElementById('th-dms').textContent   = labels.thDms;
+}
+
+function t(key, lang) {
+  var L = (typeof LANGUAGE !== 'undefined') ? (LANGUAGE[lang] || LANGUAGE['en']) : {};
+  if (key === 'asc') return '上升 Asc';
+  if (key === 'mc')  return '天頂 MC';
+  return L[key] || key;
+}
+
+function getSignForDD(dd) {
+  dd = mod360(dd);
+  return SIGN_DATA[Math.floor(dd / 30)] || SIGN_DATA[0];
+}
+
+function ddToSignDMS(dd, lang) {
+  var sign   = getSignForDD(dd);
+  var within = mod360(dd) - sign.start;
+  var d = Math.floor(within);
+  var m = Math.floor((within - d) * 60);
+  var s = Math.round(((within - d) * 60 - m) * 60);
+  if (s===60){s=0;m++;} if (m===60){m=0;d++;}
+  return sign.symbol + ' ' + t(sign.key,lang) + ' ' + d + '° ' + m + "' " + s + '"';
+}
+
+function getSignLabel(dd, lang) {
+  var sign = getSignForDD(dd);
+  return sign.symbol + ' ' + t(sign.key, lang);
+}
+
+function getSignIngress(dd) {
+  var sign   = getSignForDD(dd);
+  var within = mod360(dd) - sign.start;
+  var d = Math.floor(within);
+  var m = Math.floor((within - d) * 60);
+  var s = Math.round(((within - d) * 60 - m) * 60);
+  if (s===60){s=0;m++;} if (m===60){m=0;d++;}
+  return d + '° ' + m + "' " + s + '"';
+}
+
+function calcDynamicAyanamsa(dateStr, timeStr, geoLon) {
+  var utcDate = localToUtcDate(dateStr, timeStr, geoLon);
+  var utcHour = utcDate.getUTCHours() + utcDate.getUTCMinutes() / 60;
+  var jde = AstroHouses.dateToJDE(
+    utcDate.getUTCFullYear(),
+    utcDate.getUTCMonth() + 1,
+    utcDate.getUTCDate(),
+    utcHour
+  );
+  return AstroHouses.calcAyanamsa(jde, 'lahiri');
+}
+
+function toDisplayLon(tropicalLon, zodiac, ayanamsa) {
+  return zodiac === 'sidereal'
+    ? mod360(tropicalLon - ayanamsa)
+    : mod360(tropicalLon);
+}
+
+// ─────────────────────────────────────────────────────────────
+// calcAngles：依照 astro-angles.js 設計規範呼叫
+//   1. 傳入「當地時間」（不預先轉 UTC）
+//   2. 明確傳入 utcOffsetHours
+//   3. longitude 使用東正西負標準值（不取負號）
+//   4. hour/minute/second 分開傳入
+// ─────────────────────────────────────────────────────────────
+function calcAngles(dateStr, timeStr, lat, geoLon) {
+  // 修正：統一使用 localToUtcDate 換算 UTC，避免凌晨跨日錯誤
+  var utcDate = localToUtcDate(dateStr, timeStr, geoLon);
+
+  var result = AstroAngles.calcAngles({
+    year:           utcDate.getUTCFullYear(),
+    month:          utcDate.getUTCMonth() + 1,
+    date:           utcDate.getUTCDate(),
+    hour:           utcDate.getUTCHours(),
+    minute:         utcDate.getUTCMinutes(),
+    second:         utcDate.getUTCSeconds(),
+    latitude:       lat,
+    longitude:      geoLon,
+    utcOffsetHours: 0  // 已傳入 UTC 時間，offset 設為 0
+  });
+
+  return {
+    ascTropical: result.ascendant,
+    mcTropical:  result.midheaven,
+    ramc:        result.lst,
+    obliquity:   AstronomyUtils.getObliquityEcliptic(result.julianDate)
+  };
+}
+
+function calcHouseCusps(ang, lat, houseSystem, zodiac, ayanamsa) {
+  var cusps = AstroHouses.calculateHouseCusps(houseSystem, {
+    rightAscensionMC:  ang.ramc,
+    midheaven:         ang.mcTropical,
+    ascendant:         ang.ascTropical,
+    latitude:          lat,
+    obliquityEcliptic: ang.obliquity,
+    zodiac:            zodiac,
+    ayanamsa:          zodiac === 'sidereal' ? ayanamsa : null
+  });
+  if (zodiac==='sidereal' && houseSystem!=='whole-sign' && houseSystem!=='equal-house') {
+    cusps = cusps.map(function(c){ return mod360(c - ayanamsa); });
+  }
+  return cusps;
+}
+
+function getHouseNumber(lon, cusps) {
+  lon = mod360(lon);
+  for (var i=0; i<12; i++) {
+    var s = mod360(cusps[i]), e = mod360(cusps[(i+1)%12]);
+    var inside = (Math.abs(s-e)<0.0001) ? false
+               : (s<e) ? (lon>=s && lon<e)
+               : (lon>=s || lon<e);
+    if (inside) return i+1;
+  }
+  var best=0, bestD=360;
+  for (var j=0;j<12;j++){var d=mod360(lon-mod360(cusps[j]));if(d<bestD){bestD=d;best=j;}}
+  return best+1;
+}
+
+function getBodyTropicalLon(bodyKey, astroTime) {
+  if (bodyKey==='sun')  return mod360(Astronomy.SunPosition(astroTime).elon);
+  if (bodyKey==='moon') return mod360(Astronomy.EclipticGeoMoon(astroTime).lon);
+  if (bodyKey==='northNode'||bodyKey==='southNode') {
+    var T=astroTime.tt/36525, omega=mod360(125.04452-1934.136261*T);
+    return bodyKey==='northNode' ? omega : mod360(omega+180);
+  }
+  if (bodyKey==='lilith') {
+    var T = astroTime.tt / 36525.0;
+    var perigee = mod360(
+      83.3532465
+      + 4069.0137287 * T
+      - 0.0103200  * T * T
+      - T * T * T / 80053.0
+      + T * T * T * T / 18999000.0
+    );
+    return mod360(perigee + 180);
+  }
+  var m={mercury:'Mercury',venus:'Venus',mars:'Mars',jupiter:'Jupiter',
+         saturn:'Saturn',uranus:'Uranus',neptune:'Neptune',pluto:'Pluto'};
+  if (m[bodyKey]) return mod360(Astronomy.Ecliptic(Astronomy.GeoVector(m[bodyKey],astroTime,true)).elon);
+  return 0;
+}
+
+function isRetrograde(bodyKey, astroTime) {
+  if ({sun:1,moon:1,northNode:1,southNode:1,lilith:1}[bodyKey]) return false;
+  var dt=0.1;
+  var l1=getBodyTropicalLon(bodyKey, new Astronomy.AstroTime(astroTime.ut-dt));
+  var l2=getBodyTropicalLon(bodyKey, new Astronomy.AstroTime(astroTime.ut+dt));
+  var diff=l2-l1;
+  if(diff>180) diff-=360; if(diff<-180) diff+=360;
+  return diff<0;
+}
+
+function calcAspects(bodyLons, includeMajor, includeMinor, orbOverrides) {
+  var results=[], keys=Object.keys(bodyLons);
+  for(var i=0;i<keys.length;i++){
+    for(var j=i+1;j<keys.length;j++){
+      var diff=Math.abs(bodyLons[keys[i]]-bodyLons[keys[j]]);
+      if(diff>180) diff=360-diff;
+      ASPECTS_DEF.forEach(function(asp){
+        if(asp.level==='major'&&!includeMajor) return;
+        if(asp.level==='minor'&&!includeMinor) return;
+        var effectiveOrb = (orbOverrides && orbOverrides[asp.key] != null)
+          ? orbOverrides[asp.key]
+          : asp.orb;
+        var orb=Math.abs(diff-asp.angle);
+        if(orb<=effectiveOrb) results.push({
+          body1:keys[i], body2:keys[j],
+          aspect:asp.key, symbol:asp.symbol,
+          orb:orb.toFixed(2), level:asp.level
+        });
+      });
+    }
+  }
+  return results;
+}
+
+function getDashArray(name) {
+  var val = document.querySelector('input[name="dash-' + name + '"]:checked');
+  return (val && val.value === 'dash') ? '6,4' : 'none';
+}
+
+function getOrbValue(id) {
+  var el = document.getElementById(id);
+  var v = el ? parseFloat(el.value) : NaN;
+  return isNaN(v) ? 6 : v;
+}
+
+function drawAspectLines(allLons, cuspsArr, chartSize, aspectStroke,
+                         lineOpp, lineTrine, lineSquare, lineSextile,
+                         dashOpp, dashTrine, dashSquare, dashSextile,
+                         orbOpp, orbTrine, orbSquare, orbSextile) {
+  var svgEl = document.querySelector('#paper svg');
+  if (!svgEl) return;
+
+  var sz      = parseInt(chartSize) || 620;
+  var cx      = sz / 2;
+  var cy      = sz / 2;
+  var margin  = 50;
+  var outerR  = sz / 2 - margin;
+  var innerR  = outerR / 2;
+  var shift   = (360 - cuspsArr[0]) % 360;
+
+  function lonToXY(lon) {
+    var angleRad = (180 - lon - shift) * Math.PI / 180;
+    return {
+      x: cx + innerR * Math.cos(angleRad),
+      y: cy + innerR * Math.sin(angleRad)
+    };
+  }
+
+  var aspSpecs = [];
+  if (lineOpp)     aspSpecs.push({ angle: 180, orb: orbOpp,     color: '#A020F0', dash: dashOpp });
+  if (lineTrine)   aspSpecs.push({ angle: 120, orb: orbTrine,   color: '#7ec98f', dash: dashTrine });
+  if (lineSquare)  aspSpecs.push({ angle: 90,  orb: orbSquare,  color: '#ff6b6b', dash: dashSquare });
+  if (lineSextile) aspSpecs.push({ angle: 60,  orb: orbSextile, color: '#4169E1', dash: dashSextile });
+
+  if (aspSpecs.length === 0) return;
+
+  var strokeW = Math.max(0.5, aspectStroke);
+  var lonsForLines = {};
+  Object.keys(allLons).forEach(function(k) {
+    if (k !== 'southNode') { lonsForLines[k] = allLons[k]; }
+  });
+
+  var keys = Object.keys(lonsForLines);
+  var lines = [], seen = {};
+
+  for (var i = 0; i < keys.length; i++) {
+    for (var j = i + 1; j < keys.length; j++) {
+      var diff = Math.abs(lonsForLines[keys[i]] - lonsForLines[keys[j]]);
+      if (diff > 180) diff = 360 - diff;
+      aspSpecs.forEach(function(spec) {
+        if (Math.abs(diff - spec.angle) <= spec.orb) {
+          var key = spec.angle + '_' + keys[i] + '_' + keys[j];
+          if (!seen[key]) {
+            seen[key] = true;
+            lines.push({ a: keys[i], b: keys[j], color: spec.color, dash: spec.dash });
+          }
+        }
+      });
+    }
+  }
+
+  if (lines.length === 0) return;
+
+  var layerId = 'fallback-aspect-lines-layer';
+  var old = svgEl.querySelector('#' + layerId);
+  if (old) old.parentNode.removeChild(old);
+
+  var layer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  layer.setAttribute('id', layerId);
+  svgEl.insertBefore(layer, svgEl.firstChild);
+
+  lines.forEach(function(item) {
+    var p1 = lonToXY(lonsForLines[item.a]);
+    var p2 = lonToXY(lonsForLines[item.b]);
+    var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', p1.x.toFixed(2));
+    line.setAttribute('y1', p1.y.toFixed(2));
+    line.setAttribute('x2', p2.x.toFixed(2));
+    line.setAttribute('y2', p2.y.toFixed(2));
+    line.setAttribute('stroke',         item.color);
+    line.setAttribute('stroke-width',   strokeW);
+    line.setAttribute('stroke-opacity', '0.85');
+    line.setAttribute('stroke-linecap', 'round');
+    if (item.dash && item.dash !== 'none') {
+      line.setAttribute('stroke-dasharray', item.dash);
+    }
+    layer.appendChild(line);
+  });
+}
+
+function replacePlanetSymbolsWithChinese(planetNamesOrdered, symbolScale, pointsColor) {
+  var svgEl = document.querySelector('#paper svg');
+  if (!svgEl) return;
+
+  planetNamesOrdered.forEach(function(name) {
+    var zh = PLANET_CHINESE[name];
+    if (!zh) return;
+
+    var gEl = svgEl.querySelector('#paper-planets-' + name);
+    if (!gEl) { gEl = svgEl.querySelector('[id$="-planets-' + name + '"]'); }
+    if (!gEl) return;
+
+    var cx, cy;
+    try {
+      var bbox = gEl.getBBox();
+      cx = bbox.x + bbox.width  / 2;
+      cy = bbox.y + bbox.height / 2;
+    } catch(e) {
+      var tf = gEl.getAttribute('transform') || '';
+      var m  = tf.match(/translate\(\s*([\d.\-]+)[,\s]+([\d.\-]+)/);
+      cx = m ? parseFloat(m[1]) : 0;
+      cy = m ? parseFloat(m[2]) : 0;
+    }
+
+    while (gEl.firstChild) { gEl.removeChild(gEl.firstChild); }
+
+    var fontSize = Math.max(8, Math.round(13 * symbolScale));
+    var textEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    textEl.setAttribute('x', cx);
+    textEl.setAttribute('y', cy);
+    textEl.setAttribute('text-anchor',       'middle');
+    textEl.setAttribute('dominant-baseline', 'central');
+    textEl.setAttribute('font-size',         fontSize + 'px');
+    textEl.setAttribute('font-weight',       '700');
+    textEl.setAttribute('font-family',       "'Noto Sans TC','Microsoft JhengHei',sans-serif");
+    textEl.setAttribute('fill',              pointsColor || '#f9d56e');
+    textEl.setAttribute('stroke',            'none');
+    textEl.setAttribute('pointer-events',    'none');
+    textEl.textContent = zh;
+    gEl.appendChild(textEl);
+  });
+}
+
+function drawAstroChart(cuspsArr, allLons, chartSize, inclMajor, inclMinor,
+                        planetMode, lineOpp, lineTrine, lineSquare, lineSextile,
+                        dashOpp, dashTrine, dashSquare, dashSextile,
+                        orbOpp, orbTrine, orbSquare, orbSextile) {
+  var sz           = parseInt(chartSize) || 620;
+  var _ps          = document.getElementById('planet-size');
+  var _as          = document.getElementById('aspect-stroke');
+  var symbolScale  = _ps ? parseFloat(_ps.value) || 1.0 : 1.0;
+  var aspectStroke = _as ? parseFloat(_as.value) || 1.0 : 1.0;
+
+  var wrapper = document.getElementById('chart-wrapper');
+  wrapper.innerHTML = '<div id="paper" style="width:' + sz + 'px;height:' + sz + 'px;margin:0 auto;"></div>';
+
+  var planetNamesOrdered = [];
+  var planets = {};
+  var bodyKeys = ['sun','moon','mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto','northNode','lilith'];
+
+  bodyKeys.forEach(function(key){
+    var name = ASTROCHART_PLANET_MAP[key];
+    if (name && allLons[key] != null) {
+      var speed = 1;
+      if (window._lastAstroTime && !{northNode:1,lilith:1}[key]) {
+        try {
+          var dt = 0.1;
+          var l1 = getBodyTropicalLon(key, new Astronomy.AstroTime(window._lastAstroTime.ut - dt));
+          var l2 = getBodyTropicalLon(key, new Astronomy.AstroTime(window._lastAstroTime.ut + dt));
+          var dv = l2 - l1;
+          if (dv > 180) dv -= 360;
+          if (dv < -180) dv += 360;
+          speed = dv < 0 ? -1 : 1;
+        } catch(ex){}
+      }
+      planets[name] = [allLons[key], speed];
+      planetNamesOrdered.push(name);
+    }
+  });
+
+  if (allLons['asc'] != null) { planets['Asc'] = [allLons['asc'], 1]; planetNamesOrdered.push('Asc'); }
+  if (allLons['mc']  != null) { planets['Mc']  = [allLons['mc'],  1]; planetNamesOrdered.push('Mc');  }
+
+  var data = { planets: planets, cusps: cuspsArr };
+
+  var aspectsConfig = {};
+  if (inclMajor) {
+    aspectsConfig['conjunction'] = { degree: 0, orbit: 8, color: 'rgba(200,200,200,0.55)' };
+  }
+  if (inclMinor) {
+    aspectsConfig['quincunx']     = { degree: 150, orbit: 5, color: '#c084fc' };
+    aspectsConfig['semisextile']  = { degree: 30,  orbit: 3, color: '#94a3b8' };
+    aspectsConfig['semisquare']   = { degree: 45,  orbit: 3, color: '#fb923c' };
+    aspectsConfig['sesquisquare'] = { degree: 135, orbit: 3, color: '#fb923c' };
+    aspectsConfig['quintile']     = { degree: 72,  orbit: 2, color: '#67e8f9' };
+    aspectsConfig['biquintile']   = { degree: 144, orbit: 2, color: '#67e8f9' };
+  }
+
+  var pointsColor   = '#f9d56e';
+  var _allLons      = allLons;
+  var _cuspsArr     = cuspsArr;
+  var _chartSize    = chartSize;
+  var _aspectStroke = aspectStroke;
+
+  setTimeout(function() {
+    try {
+      if (typeof astrology === 'undefined' || !astrology.Chart) {
+        throw new Error('astrology.Chart 未定義，請確認 ./src/astrochart.js 路徑正確');
+      }
+
+      var settings = {
+        SYMBOL_SCALE:           symbolScale,
+        POINTS_STROKE:          aspectStroke * 1.8,
+        SIGNS_STROKE:           aspectStroke * 1.5,
+        CIRCLE_STRONG:          aspectStroke * 2,
+        CUSPS_STROKE:           aspectStroke,
+        SYMBOL_AXIS_STROKE:     aspectStroke * 1.6,
+        COLOR_BACKGROUND:       '#16213e',
+        POINTS_COLOR:           pointsColor,
+        SIGNS_COLOR:            '#aad4f5',
+        CIRCLE_COLOR:           '#aad4f5',
+        LINE_COLOR:             '#aad4f5',
+        CUSPS_FONT_COLOR:       '#e8e8f0',
+        SYMBOL_AXIS_FONT_COLOR: '#f9d56e',
+        ASPECTS:                aspectsConfig
+      };
+
+      var chart = new astrology.Chart('paper', sz, sz, settings);
+      var radix = chart.radix(data);
+      radix.aspects();
+
+      requestAnimationFrame(function() {
+        requestAnimationFrame(function() {
+          drawAspectLines(_allLons, _cuspsArr, _chartSize, _aspectStroke,
+                          lineOpp, lineTrine, lineSquare, lineSextile,
+                          dashOpp, dashTrine, dashSquare, dashSextile,
+                          orbOpp, orbTrine, orbSquare, orbSextile);
+          if (planetMode === 'chinese') {
+            replacePlanetSymbolsWithChinese(planetNamesOrdered, symbolScale, pointsColor);
+          }
+        });
+      });
+
+    } catch(e) {
+      document.getElementById('chart-wrapper').innerHTML =
+        '<div class="placeholder">⚠️ 繪圖失敗：' + e.message + '</div>';
+      console.error(e);
+    }
+  }, 50);
+}
+
+document.getElementById('form').addEventListener('submit', function(e) {
+  e.preventDefault();
+
+  var lat         = parseFloat(document.getElementById('latitude').value);
+  var geoLon      = parseFloat(document.getElementById('longitude').value);
+  var dateStr     = document.getElementById('date').value;
+  var timeStr     = document.getElementById('time').value;
+  var lang        = document.getElementById('language-select').value;
+  var zodiac      = document.getElementById('zodiacSystem').value;
+  var houseSystem = document.getElementById('houseSystem').value;
+  var inclMajor   = document.getElementById('aspect-major').checked;
+  var inclMinor   = document.getElementById('aspect-minor').checked;
+  var chartSize   = document.getElementById('chart-size').value;
+  var planetMode  = document.querySelector('input[name="planet-mode"]:checked').value;
+
+  var lineOpp     = document.getElementById('line-opposition').checked;
+  var lineTrine   = document.getElementById('line-trine').checked;
+  var lineSquare  = document.getElementById('line-square').checked;
+  var lineSextile = document.getElementById('line-sextile').checked;
+
+  var dashOpp     = getDashArray('opposition');
+  var dashTrine   = getDashArray('trine');
+  var dashSquare  = getDashArray('square');
+  var dashSextile = getDashArray('sextile');
+
+  var orbOpp     = getOrbValue('orb-opposition');
+  var orbTrine   = getOrbValue('orb-trine');
+  var orbSquare  = getOrbValue('orb-square');
+  var orbSextile = getOrbValue('orb-sextile');
+
+  var orbOverrides = {
+    opposition: orbOpp,
+    trine:      orbTrine,
+    square:     orbSquare,
+    sextile:    orbSextile
+  };
+
+  if (!dateStr || !timeStr) { alert('請填入出生日期與時間'); return; }
+
+  updateAnglesI18n(lang);
+
+  var utcDate   = localToUtcDate(dateStr, timeStr, geoLon);
+  var astroTime = new Astronomy.AstroTime(utcDate);
+  window._lastAstroTime = astroTime;
+
+  var ayanamsa = zodiac === 'sidereal' ? calcDynamicAyanamsa(dateStr, timeStr, geoLon) : 0;
+
+  var ang        = calcAngles(dateStr, timeStr, lat, geoLon);
+  var ascDisplay = toDisplayLon(ang.ascTropical, zodiac, ayanamsa);
+  var mcDisplay  = toDisplayLon(ang.mcTropical,  zodiac, ayanamsa);
+
+  var cusps = calcHouseCusps(ang, lat, houseSystem, zodiac, ayanamsa);
+
+  var bodyKeys  = ['sun','moon','mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto'];
+  var pointKeys = ['northNode','southNode','lilith'];
+  var allLons   = {};
+
+  bodyKeys.forEach(function(key){
+    allLons[key] = toDisplayLon(getBodyTropicalLon(key, astroTime), zodiac, ayanamsa);
+  });
+  pointKeys.forEach(function(key){
+    allLons[key] = toDisplayLon(getBodyTropicalLon(key, astroTime), zodiac, ayanamsa);
+  });
+
+  allLons['asc'] = ascDisplay;
+  allLons['mc']  = mcDisplay;
+
+  var aspects = calcAspects(allLons, inclMajor, inclMinor, orbOverrides);
+
+  document.getElementById('sunsign').textContent =
+    getSignLabel(allLons['sun'], lang) + '  ' + ddToSignDMS(allLons['sun'], lang);
+  document.getElementById('asc-quick').textContent =
+    '上升 ' + ddToSignDMS(ascDisplay, lang);
+
+  document.getElementById('asc-a').textContent = ascDisplay.toFixed(2) + '°';
+  document.getElementById('mc-a').textContent  = mcDisplay.toFixed(2)  + '°';
+  document.getElementById('asc-b').textContent = ascDisplay.toFixed(4);
+  document.getElementById('mc-b').textContent  = mcDisplay.toFixed(4);
+  document.getElementById('asc-c').textContent = ddToSignDMS(ascDisplay, lang);
+  document.getElementById('mc-c').textContent  = ddToSignDMS(mcDisplay,  lang);
+
+  var hTbody = document.getElementById('houses-tbody');
+  hTbody.innerHTML = '';
+
+  var houseRulers = [];
+  try {
+    houseRulers = AstroHouses.getAllHouseRulers(cusps, {
+      rulerMode: 'modern',
+      zodiac:    zodiac,
+      ayanamsa:  ayanamsa || null
+    });
+  } catch(err) {
+    console.warn('getAllHouseRulers 失敗：', err);
+  }
+
+  for (var i = 0; i < 12; i++) {
+    var row = hTbody.insertRow();
+    row.insertCell().textContent = t('house' + (i + 1), lang);
+    row.insertCell().textContent = cusps[i].toFixed(4);
+    row.insertCell().textContent = cusps[(i + 1) % 12].toFixed(4);
+    row.insertCell().textContent = getSignLabel(cusps[i], lang) + ' ' + getSignIngress(cusps[i]);
+    var rulerCell = row.insertCell();
+    rulerCell.className = 'ruler-cell';
+    if (houseRulers[i]) {
+      rulerCell.textContent = RULER_DISPLAY[houseRulers[i].rulerKey] || houseRulers[i].rulerKey;
+    } else {
+      rulerCell.textContent = '—';
+    }
+  }
+
+  var bTbody = document.getElementById('bodies-tbody');
+  bTbody.innerHTML = '';
+  bodyKeys.forEach(function(key){
+    var lon = allLons[key];
+    var row = bTbody.insertRow();
+    var retro = isRetrograde(key, astroTime);
+    row.insertCell().textContent = t(key, lang);
+    row.insertCell().textContent = lon.toFixed(4);
+    row.insertCell().textContent = getSignLabel(lon, lang);
+    row.insertCell().textContent = ddToSignDMS(lon, lang);
+    row.insertCell().textContent = t('house'+getHouseNumber(lon,cusps), lang);
+    var retroCell = row.insertCell();
+    retroCell.textContent = retro ? '逆 R' : '順 D';
+    retroCell.className   = retro ? 'retro' : 'direct';
+  });
+
+  var pTbody = document.getElementById('points-tbody');
+  pTbody.innerHTML = '';
+  pointKeys.forEach(function(key){
+    var lon = allLons[key];
+    var row = pTbody.insertRow();
+    row.insertCell().textContent = t(key, lang);
+    row.insertCell().textContent = lon.toFixed(4);
+    row.insertCell().textContent = getSignLabel(lon, lang);
+    row.insertCell().textContent = ddToSignDMS(lon, lang);
+    row.insertCell().textContent = t('house'+getHouseNumber(lon,cusps), lang);
+  });
+
+  var aTbody = document.getElementById('aspects-tbody');
+  aTbody.innerHTML = '';
+  aspects.forEach(function(asp){
+    var row = aTbody.insertRow();
+    row.insertCell().textContent = t(asp.body1, lang);
+    var aspCell = row.insertCell();
+    aspCell.textContent = asp.symbol + ' ' + t(asp.aspect, lang);
+    aspCell.className   = 'aspect-' + asp.level;
+    row.insertCell().textContent = t(asp.body2, lang);
+    row.insertCell().textContent = asp.orb + '°';
+    row.insertCell().textContent = asp.level==='major' ? '主要' : '次要';
+  });
+
+  drawAstroChart(cusps, allLons, chartSize, inclMajor, inclMinor,
+                 planetMode, lineOpp, lineTrine, lineSquare, lineSextile,
+                 dashOpp, dashTrine, dashSquare, dashSextile,
+                 orbOpp, orbTrine, orbSquare, orbSextile);
+
+  document.getElementById('output-area').style.display = 'block';
+});
+</script>
+</body>
+</html>
