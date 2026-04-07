@@ -227,7 +227,12 @@
 	.asp-biquintile   { background: rgba(103,232,249,0.18); color: #67e8f9; font-weight: 700; }
 	.asp-self         { background: rgba(255,255,255,0.04); color: var(--color-muted); }
 	.asp-empty        { background: transparent; }
-	
+
+	.dignity-domicile   { color: #7ec98f; font-weight: 600; }   /* 入廟：綠 */
+	.dignity-exaltation { color: #f9d56e; font-weight: 600; }   /* 旺：金 */
+	.dignity-detriment  { color: #ff8a8a; font-weight: 600; }   /* 陷：紅 */
+	.dignity-fall       { color: #fb923c; font-weight: 600; }   /* 弱：橙 */
+	.dignity-peregrine  { color: #8888aa; }                     /* 無特殊：灰 */	
   </style>
 </head>
 <body>
@@ -429,8 +434,7 @@
         <div class="table-scroll">
           <table>
             <thead><tr>
-              <th>宮</th><th>起始黃道°</th><th>終止黃道°</th><th>星座</th><th>宮主星</th>
-            </tr></thead>
+				<th>宮</th><th>起始黃道°</th><th>終止黃道°</th><th>星座</th><th>宮主星</th><th>尊貴</th>            </tr></thead>
             <tbody id="houses-tbody"></tbody>
           </table>
         </div>
@@ -1222,6 +1226,37 @@ document.getElementById('form').addEventListener('submit', function(e) {
     } else {
       rulerCell.textContent = '—';
     }
+
+	// 尊貴欄
+	var dignityCell = row.insertCell();
+	if (houseRulers[i]) {
+	  var rulerPlanet = houseRulers[i].rulerKey;          // e.g. 'sun'
+	  var rulerLon    = allLons[rulerPlanet];              // 宮主星目前黃經
+	  if (rulerLon !== null && rulerLon !== undefined) {
+		var rulerSign     = AstroHouses.getZodiacSign({ decimalDegrees: rulerLon, zodiac: zodiac, ayanamsa: zodiac === 'sidereal' ? ayanamsa : null });
+		var rulerSignKey  = rulerSign.key;                 // 宮主星落入的星座 key
+		var rulerHouseNum = getHouseNumber(rulerLon, cusps); // 宮主星落在第幾宮
+		var dignityResult = AstroHouses.getPlanetDignity(rulerPlanet, rulerSignKey, lang);
+		// 顯示格式：入廟 · 獅子座 · 第1宮
+		var houseLabel = lang === 'zh'
+		  ? '第' + rulerHouseNum + '宮'
+		  : 'House ' + rulerHouseNum;
+		var dignityText = (dignityResult.dignityKey === 'peregrine')
+		  ? ''
+		  : dignityResult.dignityLabel + ' ( ' + dignityResult.sign + ' · ' + houseLabel + ' ) ';
+		dignityCell.textContent = dignityText;		// 依尊貴狀態加色彩 class
+		var dKey = dignityResult.dignityKey;
+		if (dKey === 'domicile')    dignityCell.className = 'dignity-domicile';
+		else if (dKey === 'exaltation') dignityCell.className = 'dignity-exaltation';
+		else if (dKey === 'detriment')  dignityCell.className = 'dignity-detriment';
+		else if (dKey === 'fall')       dignityCell.className = 'dignity-fall';
+		else                            dignityCell.className = 'dignity-peregrine';
+	  } else {
+		dignityCell.textContent = '—';
+	  }
+	} else {
+	  dignityCell.textContent = '—';
+	}	
   }
 
   var bTbody = document.getElementById('bodies-tbody');
