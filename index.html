@@ -1107,5 +1107,53 @@ document.getElementById('form').addEventListener('submit', function(e) {
   document.getElementById('output-area').style.display = 'block';
 });
 </script>
+
+<script>
+// ── 覆寫 getSymbol，將星座符號改為中文文字 ──────────────
+(function () {
+  const SIGN_ZH = {
+    "Aries":       "牡羊",
+    "Taurus":      "金牛",
+    "Gemini":      "雙子",
+    "Cancer":      "巨蟹",
+    "Leo":         "獅子",
+    "Virgo":       "處女",
+    "Libra":       "天秤",
+    "Scorpio":     "天蠍",
+    "Sagittarius": "射手",
+    "Capricorn":   "摩羯",
+    "Aquarius":    "水瓶",
+    "Pisces":      "雙魚"
+  };
+
+  const SIGNS = new Set(Object.keys(SIGN_ZH));
+  const _orig = astrology.SVG.prototype.getSymbol;
+
+  astrology.SVG.prototype.getSymbol = function (name, x, y) {
+    if (SIGNS.has(name)) {
+      // 建立 SVG <g> 包住 <text>，與原本回傳格式一致
+      const ns = "http://www.w3.org/2000/svg";
+      const g = document.createElementNS(ns, "g");
+      const txt = document.createElementNS(ns, "text");
+      const scale = astrology.SYMBOL_SCALE || 1;
+
+      txt.setAttribute("x", x);
+      txt.setAttribute("y", y);
+      txt.setAttribute("text-anchor", "middle");
+      txt.setAttribute("dominant-baseline", "central");
+      txt.setAttribute("font-size", 12 * scale);
+      txt.setAttribute("fill", "#FFD700");
+      txt.setAttribute("font-family", "'Noto Sans TC', 'Segoe UI', sans-serif");
+      txt.setAttribute("font-weight", "bold");
+      txt.textContent = SIGN_ZH[name];
+      g.appendChild(txt);
+      return g;
+    }
+    // 其他符號（行星等）維持原本邏輯
+    return _orig.call(this, name, x, y);
+  };
+})();
+</script>
+
 </body>
 </html>
