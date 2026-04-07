@@ -758,6 +758,7 @@ function calcAspects(bodyLons, includeMajor, includeMinor, orbOverrides) {
   var results=[], keys=Object.keys(bodyLons);
   for(var i=0;i<keys.length;i++){
     for(var j=i+1;j<keys.length;j++){
+      if ((keys[i]==='asc'&&keys[j]==='mc')||(keys[i]==='mc'&&keys[j]==='asc')) continue;
       var diff=Math.abs(bodyLons[keys[i]]-bodyLons[keys[j]]);
       if(diff>180) diff=360-diff;
       ASPECTS_DEF.forEach(function(asp){
@@ -813,6 +814,7 @@ function buildAspectMatrix(allLons, inclMajor, inclMinor, orbOverrides) {
   var aspMap = {};
   for (var i = 0; i < keys.length; i++) {
     for (var j = i + 1; j < keys.length; j++) {
+      if ((keys[i]==='asc'&&keys[j]==='mc')||(keys[i]==='mc'&&keys[j]==='asc')) continue;
       var diff = Math.abs(allLons[keys[i]] - allLons[keys[j]]);
       if (diff > 180) diff = 360 - diff;
       var best = null, bestOrb = 999;
@@ -924,6 +926,7 @@ function drawAspectLines(allLons, cuspsArr, chartSize, aspectStroke,
 
   for (var i = 0; i < keys.length; i++) {
     for (var j = i + 1; j < keys.length; j++) {
+      if ((keys[i]==='asc'&&keys[j]==='mc')||(keys[i]==='mc'&&keys[j]==='asc')) continue;
       var diff = Math.abs(lonsForLines[keys[i]] - lonsForLines[keys[j]]);
       if (diff > 180) diff = 360 - diff;
       aspSpecs.forEach(function(spec) {
