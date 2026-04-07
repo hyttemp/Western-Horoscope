@@ -852,6 +852,67 @@
   }
 
   // ============================================================
+  // 廟旺陷弱（Dignities）
+  // ============================================================
+
+  var DIGNITY_LABELS = {
+    en: {
+      domicile:   'Domicile',
+      exaltation: 'Exaltation',
+      detriment:  'Detriment',
+      fall:       'Fall',
+      peregrine:  'Peregrine'
+    },
+    zh: {
+      domicile:   '入廟',
+      exaltation: '旺（曜升）',
+      detriment:  '陷（失勢）',
+      fall:       '弱（落弱）',
+      peregrine:  '無特殊尊貴'
+    }
+  };
+
+  var PLANET_LABELS_DIGNITY = {
+    en: { sun:'Sun', moon:'Moon', mercury:'Mercury', venus:'Venus', mars:'Mars', jupiter:'Jupiter', saturn:'Saturn', uranus:'Uranus', neptune:'Neptune', pluto:'Pluto' },
+    zh: { sun:'太陽', moon:'月亮', mercury:'水星', venus:'金星', mars:'火星', jupiter:'木星', saturn:'土星', uranus:'天王星', neptune:'海王星', pluto:'冥王星' }
+  };
+
+  var SIGN_LABELS_DIGNITY = {
+    en: { aries:'Aries', taurus:'Taurus', gemini:'Gemini', cancer:'Cancer', leo:'Leo', virgo:'Virgo', libra:'Libra', scorpio:'Scorpio', sagittarius:'Sagittarius', capricorn:'Capricorn', aquarius:'Aquarius', pisces:'Pisces' },
+    zh: { aries:'白羊座', taurus:'金牛座', gemini:'雙子座', cancer:'巨蟹座', leo:'獅子座', virgo:'處女座', libra:'天秤座', scorpio:'天蠍座', sagittarius:'射手座', capricorn:'摩羯座', aquarius:'水瓶座', pisces:'雙魚座' }
+  };
+
+  var DIGNITIES = {
+    sun:     { domicile:['leo'],                   exaltation:['aries'],       detriment:['aquarius'],             fall:['libra'] },
+    moon:    { domicile:['cancer'],                exaltation:['taurus'],      detriment:['capricorn'],            fall:['scorpio'] },
+    mercury: { domicile:['gemini','virgo'],         exaltation:['virgo'],       detriment:['sagittarius','pisces'], fall:['pisces'] },
+    venus:   { domicile:['taurus','libra'],         exaltation:['pisces'],      detriment:['aries','scorpio'],      fall:['virgo'] },
+    mars:    { domicile:['aries','scorpio'],        exaltation:['capricorn'],   detriment:['taurus','libra'],       fall:['cancer'] },
+    jupiter: { domicile:['sagittarius','pisces'],   exaltation:['cancer'],      detriment:['gemini','virgo'],       fall:['capricorn'] },
+    saturn:  { domicile:['capricorn','aquarius'],   exaltation:['libra'],       detriment:['cancer','leo'],         fall:['aries'] },
+    uranus:  { domicile:['aquarius'],               exaltation:[],              detriment:['leo'],                  fall:[] },
+    neptune: { domicile:['pisces'],                 exaltation:[],              detriment:['virgo'],                fall:[] },
+    pluto:   { domicile:['scorpio'],                exaltation:[],              detriment:['taurus'],               fall:[] }
+  };
+
+  function getPlanetDignity(planet, signKey, lang) {
+    lang = (lang === 'en') ? 'en' : 'zh';
+    var d = DIGNITIES[planet];
+    if (!d) { return { planet: planet, sign: signKey, dignityKey: null, dignityLabel: '未知行星' }; }
+    var dignityKey = 'peregrine';
+    if (d.domicile.indexOf(signKey) !== -1)         { dignityKey = 'domicile'; }
+    else if (d.exaltation.indexOf(signKey) !== -1)  { dignityKey = 'exaltation'; }
+    else if (d.detriment.indexOf(signKey) !== -1)   { dignityKey = 'detriment'; }
+    else if (d.fall.indexOf(signKey) !== -1)        { dignityKey = 'fall'; }
+    return {
+      planet:       (PLANET_LABELS_DIGNITY[lang][planet] || planet),
+      sign:         (SIGN_LABELS_DIGNITY[lang][signKey]  || signKey),
+      dignityKey:   dignityKey,
+      dignityLabel: DIGNITY_LABELS[lang][dignityKey]
+    };
+  }
+
+  // ============================================================
   // 對外 API
   // ============================================================
 
@@ -886,7 +947,10 @@
     AYANAMSA_SYSTEMS: ['lahiri','fagan-bradley','raman','krishnamurti'],
     // v2.1.0 新增
     getHouseRuler:                    getHouseRuler,
-    getAllHouseRulers:                 getAllHouseRulers
+    getAllHouseRulers:                 getAllHouseRulers,
+    // 廟旺陷弱
+    DIGNITIES:                        DIGNITIES,
+    getPlanetDignity:                 getPlanetDignity
   };
 
 }));
