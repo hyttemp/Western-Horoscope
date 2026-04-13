@@ -446,7 +446,6 @@
       </div>
     </div>
 
-    <!-- ★ 星盤圖形移到月亮空亡上面 -->
     <div id="chart-patterns-container">
       <div class="table-card-head"><h3>星盤圖形 Chart Patterns</h3></div>
       <div id="chart-patterns-list"></div>
@@ -542,6 +541,42 @@
 </div>
 
 <script>
+// ================================================================
+// ★ 修正 1：頁面載入時自動填入「現在」的當地日期時間
+//    使用 Date 物件的本地方法，確保跨時區正確顯示
+// ================================================================
+(function initDefaultDateTime() {
+  var now = new Date();
+  document.getElementById('date-year').value   = now.getFullYear();
+  document.getElementById('date-month').value  = now.getMonth() + 1;
+  document.getElementById('date-day').value    = now.getDate();
+  document.getElementById('time-hour').value   = now.getHours();
+  document.getElementById('time-minute').value = now.getMinutes();
+}());
+
+// ================================================================
+// ★ 修正 2：Spin 按鈕邏輯（與原版相同，確保保留）
+// ================================================================
+document.querySelectorAll('.spin-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    var targetId = this.dataset.target;
+    var step     = parseFloat(this.dataset.step) || 1;
+    var minVal   = this.dataset.min !== undefined ? parseFloat(this.dataset.min) : -Infinity;
+    var maxVal   = this.dataset.max !== undefined ? parseFloat(this.dataset.max) :  Infinity;
+    var input    = document.getElementById(targetId);
+    if (!input) return;
+    var val = parseFloat(input.value) || 0;
+    val += step;
+    if (val < minVal) val = minVal;
+    if (val > maxVal) val = maxVal;
+    input.value = val;
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+});
+
+// ================================================================
+// ★ 修正 3：VOC 模組 — 完全使用 Date.UTC() 避免瀏覽器時區污染
+// ================================================================
 (function () {
   'use strict';
 
@@ -561,6 +596,7 @@
     Uranus:'天王星', Neptune:'海王星', Pluto:'冥王星'
   };
 
+  // ★ 修正：getTzOffset 純粹依賴經度，不碰 new Date()
   var getTzOffset = function () {
     var lon = parseFloat(document.getElementById('longitude').value);
     if (isNaN(lon)) { return 0; }
@@ -574,17 +610,22 @@
 
   var pad = function (n) { return String(n).padStart(2, '0'); };
 
-  var fmtLocal = function (d) {
+  // ★ 修正：fmtLocal 改用 UTC 方法 + 手動偏移，避免瀏覽器時區干擾
+  var fmtLocal = function (d, offsetH) {
     if (!d || isNaN(d)) { return '—'; }
-    return d.getFullYear() + '/' + pad(d.getMonth()+1) + '/' + pad(d.getDate())
-         + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+    var off = (offsetH !== undefined) ? offsetH : 0;
+    var shifted = new Date(d.getTime() + off * 3600000);
+    return shifted.getUTCFullYear() + '/'
+         + pad(shifted.getUTCMonth() + 1) + '/'
+         + pad(shifted.getUTCDate())
+         + ' ' + pad(shifted.getUTCHours()) + ':' + pad(shifted.getUTCMinutes());
   };
 
   var fmtWithTz = function (d, offsetH) {
     if (!d || isNaN(d)) { return '—'; }
     var shifted = new Date(d.getTime() + offsetH * 3600000);
     return shifted.getUTCFullYear() + '/'
-         + pad(shifted.getUTCMonth()+1) + '/'
+         + pad(shifted.getUTCMonth() + 1) + '/'
          + pad(shifted.getUTCDate())
          + ' ' + pad(shifted.getUTCHours()) + ':' + pad(shifted.getUTCMinutes());
   };
@@ -604,25 +645,24 @@
     return td;
   };
 
-  var getLocalDate = function () {
+  // ★ 修正核心：getLocalDate 改用 Date.UTC，不受瀏覽器時區影響
+  //   回傳一個「代表使用者輸入的當地時間」的 Date 物件（以 UTC 儲存）
+  var getLocalDateAsUtc = function () {
     var y   = parseInt(document.getElementById('date-year').value,   10);
     var mo  = parseInt(document.getElementById('date-month').value,  10);
     var d   = parseInt(document.getElementById('date-day').value,    10);
     var h   = parseInt(document.getElementById('time-hour').value,   10);
     var min = parseInt(document.getElementById('time-minute').value, 10);
     if (!y || !mo || !d || isNaN(h) || isNaN(min)) { return null; }
-    return new Date(y, mo - 1, d, h, min, 0, 0);
+    // 用 Date.UTC 建立，避免 new Date(y,m,d,h,min) 套用瀏覽器時區
+    return new Date(Date.UTC(y, mo - 1, d, h, min, 0, 0));
   };
 
+  // ★ 修正核心：getUtcEquiv 從當地時間減去經度時區偏移得到真正的 UTC
   var getUtcEquiv = function () {
-    var y   = parseInt(document.getElementById('date-year').value,   10);
-    var mo  = parseInt(document.getElementById('date-month').value,  10);
-    var d   = parseInt(document.getElementById('date-day').value,    10);
-    var h   = parseInt(document.getElementById('time-hour').value,   10);
-    var min = parseInt(document.getElementById('time-minute').value, 10);
-    if (!y || !mo || !d || isNaN(h) || isNaN(min)) { return null; }
+    var localAsUtc = getLocalDateAsUtc();
+    if (!localAsUtc) { return null; }
     var offsetH = getTzOffset();
-    var localAsUtc = new Date(Date.UTC(y, mo - 1, d, h, min, 0, 0));
     return new Date(localAsUtc.getTime() - offsetH * 3600000);
   };
 
@@ -661,7 +701,7 @@
     document.getElementById('voc-table-wrap').style.display = 'none';
   };
 
-  var renderVoc = function (vocList, localStart, offsetH) {
+  var renderVoc = function (vocList, localDateAsUtc, offsetH) {
     var elLoading = document.getElementById('voc-loading');
     var elEmpty   = document.getElementById('voc-empty');
     var elWrap    = document.getElementById('voc-table-wrap');
@@ -671,14 +711,15 @@
 
     elLoading.style.display = 'none';
 
-    elTzBadge.textContent = fmtTzLabel(offsetH);
-
     var tzLabel = fmtTzLabel(offsetH);
+    elTzBadge.textContent = tzLabel;
+
     document.getElementById('th-voc-start').textContent = '空亡開始（' + tzLabel + '）';
     document.getElementById('th-voc-end').textContent   = '空亡結束（' + tzLabel + '）';
 
-    elBadge.textContent = fmtLocal(localStart) + ' ～ '
-                        + fmtLocal(new Date(localStart.getTime() + 3 * 86400000));
+    // ★ 修正：badge 顯示使用 fmtLocal（帶 offsetH），確保顯示當地時間
+    var endDate = new Date(localDateAsUtc.getTime() + 3 * 86400000);
+    elBadge.textContent = fmtLocal(localDateAsUtc, offsetH) + ' ～ ' + fmtLocal(endDate, offsetH);
 
     if (!vocList || vocList.length === 0) {
       elEmpty.style.display = 'block';
@@ -737,9 +778,9 @@
       console.warn('[VOC] moon_voc.js 未載入');
       return;
     }
-    var localStart = getLocalDate();
-    var utcEquiv   = getUtcEquiv();
-    if (!localStart || !utcEquiv) { return; }
+    var localDateAsUtc = getLocalDateAsUtc();
+    var utcEquiv       = getUtcEquiv();
+    if (!localDateAsUtc || !utcEquiv) { return; }
 
     var offsetH = getTzOffset();
 
@@ -749,7 +790,7 @@
       try {
         var rawList = MoonVOC.calcAllVoc(utcEquiv, 3);
         var vocList = convertVocList(rawList, utcEquiv);
-        renderVoc(vocList, localStart, offsetH);
+        renderVoc(vocList, localDateAsUtc, offsetH);
       } catch (err) {
         console.error('[VOC] 計算失敗：', err);
         document.getElementById('voc-loading').style.display = 'none';
