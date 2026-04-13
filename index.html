@@ -542,8 +542,8 @@
 
 <script>
 // ================================================================
-// ★ 修正 1：頁面載入時自動填入「現在」的當地日期時間
-//    使用 Date 物件的本地方法，確保跨時區正確顯示
+// ★ 修正 1：頁面載入時自動填入當前日期時間
+//   用瀏覽器本地時間填入欄位（顯示用），不影響 spin 按鈕邏輯
 // ================================================================
 (function initDefaultDateTime() {
   var now = new Date();
@@ -555,27 +555,10 @@
 }());
 
 // ================================================================
-// ★ 修正 2：Spin 按鈕邏輯（與原版相同，確保保留）
-// ================================================================
-document.querySelectorAll('.spin-btn').forEach(function(btn) {
-  btn.addEventListener('click', function() {
-    var targetId = this.dataset.target;
-    var step     = parseFloat(this.dataset.step) || 1;
-    var minVal   = this.dataset.min !== undefined ? parseFloat(this.dataset.min) : -Infinity;
-    var maxVal   = this.dataset.max !== undefined ? parseFloat(this.dataset.max) :  Infinity;
-    var input    = document.getElementById(targetId);
-    if (!input) return;
-    var val = parseFloat(input.value) || 0;
-    val += step;
-    if (val < minVal) val = minVal;
-    if (val > maxVal) val = maxVal;
-    input.value = val;
-    input.dispatchEvent(new Event('input', { bubbles: true }));
-  });
-});
-
-// ================================================================
-// ★ 修正 3：VOC 模組 — 完全使用 Date.UTC() 避免瀏覽器時區污染
+// ★ 修正 2：VOC 模組（與原版 index2-v.html 邏輯相同，
+//   只修正 getUtcEquiv 使用 Date.UTC 避免瀏覽器時區污染，
+//   以及 fmtLocal/badge 顯示改用 UTC 方法確保跨時區正確）
+//   ⚠️ 完全不碰 spin 按鈕，由 utility1.js 負責
 // ================================================================
 (function () {
   'use strict';
@@ -596,7 +579,6 @@ document.querySelectorAll('.spin-btn').forEach(function(btn) {
     Uranus:'天王星', Neptune:'海王星', Pluto:'冥王星'
   };
 
-  // ★ 修正：getTzOffset 純粹依賴經度，不碰 new Date()
   var getTzOffset = function () {
     var lon = parseFloat(document.getElementById('longitude').value);
     if (isNaN(lon)) { return 0; }
@@ -610,17 +592,7 @@ document.querySelectorAll('.spin-btn').forEach(function(btn) {
 
   var pad = function (n) { return String(n).padStart(2, '0'); };
 
-  // ★ 修正：fmtLocal 改用 UTC 方法 + 手動偏移，避免瀏覽器時區干擾
-  var fmtLocal = function (d, offsetH) {
-    if (!d || isNaN(d)) { return '—'; }
-    var off = (offsetH !== undefined) ? offsetH : 0;
-    var shifted = new Date(d.getTime() + off * 3600000);
-    return shifted.getUTCFullYear() + '/'
-         + pad(shifted.getUTCMonth() + 1) + '/'
-         + pad(shifted.getUTCDate())
-         + ' ' + pad(shifted.getUTCHours()) + ':' + pad(shifted.getUTCMinutes());
-  };
-
+  // ★ 修正：改用 UTC 方法 + 手動偏移，避免瀏覽器時區干擾顯示
   var fmtWithTz = function (d, offsetH) {
     if (!d || isNaN(d)) { return '—'; }
     var shifted = new Date(d.getTime() + offsetH * 3600000);
@@ -645,25 +617,28 @@ document.querySelectorAll('.spin-btn').forEach(function(btn) {
     return td;
   };
 
-  // ★ 修正核心：getLocalDate 改用 Date.UTC，不受瀏覽器時區影響
-  //   回傳一個「代表使用者輸入的當地時間」的 Date 物件（以 UTC 儲存）
-  var getLocalDateAsUtc = function () {
+  // ★ 修正：用 Date.UTC 建立，不受瀏覽器時區影響
+  var getUtcEquiv = function () {
     var y   = parseInt(document.getElementById('date-year').value,   10);
     var mo  = parseInt(document.getElementById('date-month').value,  10);
     var d   = parseInt(document.getElementById('date-day').value,    10);
     var h   = parseInt(document.getElementById('time-hour').value,   10);
     var min = parseInt(document.getElementById('time-minute').value, 10);
     if (!y || !mo || !d || isNaN(h) || isNaN(min)) { return null; }
-    // 用 Date.UTC 建立，避免 new Date(y,m,d,h,min) 套用瀏覽器時區
-    return new Date(Date.UTC(y, mo - 1, d, h, min, 0, 0));
+    var offsetH    = getTzOffset();
+    var localAsUtc = new Date(Date.UTC(y, mo - 1, d, h, min, 0, 0));
+    return new Date(localAsUtc.getTime() - offsetH * 3600000);
   };
 
-  // ★ 修正核心：getUtcEquiv 從當地時間減去經度時區偏移得到真正的 UTC
-  var getUtcEquiv = function () {
-    var localAsUtc = getLocalDateAsUtc();
-    if (!localAsUtc) { return null; }
-    var offsetH = getTzOffset();
-    return new Date(localAsUtc.getTime() - offsetH * 3600000);
+  // badge 顯示用：把輸入的當地時間直接格式化（不做時區換算）
+  var fmtInputLocal = function () {
+    var y   = parseInt(document.getElementById('date-year').value,   10);
+    var mo  = parseInt(document.getElementById('date-month').value,  10);
+    var d   = parseInt(document.getElementById('date-day').value,    10);
+    var h   = parseInt(document.getElementById('time-hour').value,   10);
+    var min = parseInt(document.getElementById('time-minute').value, 10);
+    if (!y || !mo || !d || isNaN(h) || isNaN(min)) { return '—'; }
+    return y + '/' + pad(mo) + '/' + pad(d) + ' ' + pad(h) + ':' + pad(min);
   };
 
   var isReady = function () {
@@ -701,7 +676,7 @@ document.querySelectorAll('.spin-btn').forEach(function(btn) {
     document.getElementById('voc-table-wrap').style.display = 'none';
   };
 
-  var renderVoc = function (vocList, localDateAsUtc, offsetH) {
+  var renderVoc = function (vocList, offsetH) {
     var elLoading = document.getElementById('voc-loading');
     var elEmpty   = document.getElementById('voc-empty');
     var elWrap    = document.getElementById('voc-table-wrap');
@@ -713,13 +688,12 @@ document.querySelectorAll('.spin-btn').forEach(function(btn) {
 
     var tzLabel = fmtTzLabel(offsetH);
     elTzBadge.textContent = tzLabel;
-
     document.getElementById('th-voc-start').textContent = '空亡開始（' + tzLabel + '）';
     document.getElementById('th-voc-end').textContent   = '空亡結束（' + tzLabel + '）';
 
-    // ★ 修正：badge 顯示使用 fmtLocal（帶 offsetH），確保顯示當地時間
-    var endDate = new Date(localDateAsUtc.getTime() + 3 * 86400000);
-    elBadge.textContent = fmtLocal(localDateAsUtc, offsetH) + ' ～ ' + fmtLocal(endDate, offsetH);
+    // badge：直接顯示使用者輸入的當地時間字串，不做任何時區換算
+    var startStr = fmtInputLocal();
+    elBadge.textContent = startStr + ' 起 3 天';
 
     if (!vocList || vocList.length === 0) {
       elEmpty.style.display = 'block';
@@ -778,19 +752,17 @@ document.querySelectorAll('.spin-btn').forEach(function(btn) {
       console.warn('[VOC] moon_voc.js 未載入');
       return;
     }
-    var localDateAsUtc = getLocalDateAsUtc();
-    var utcEquiv       = getUtcEquiv();
-    if (!localDateAsUtc || !utcEquiv) { return; }
+    var utcEquiv = getUtcEquiv();
+    if (!utcEquiv) { return; }
 
     var offsetH = getTzOffset();
-
     showLoading();
 
     setTimeout(function () {
       try {
         var rawList = MoonVOC.calcAllVoc(utcEquiv, 3);
         var vocList = convertVocList(rawList, utcEquiv);
-        renderVoc(vocList, localDateAsUtc, offsetH);
+        renderVoc(vocList, offsetH);
       } catch (err) {
         console.error('[VOC] 計算失敗：', err);
         document.getElementById('voc-loading').style.display = 'none';
