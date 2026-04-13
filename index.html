@@ -12,7 +12,10 @@
   <script src="./src/astronomy.browser.js"></script>
   <script src="./src/astro-houses.js"></script>
   <script src="./src/astro-angles.js"></script>
-<script src="./src/Aspect-Applying.js"></script>
+  <script src="./src/Aspect-Applying.js"></script>
+  <script src="./Utility.js"></script>
+  <script src="./utility1.js"></script>
+  <script src="./src/moon_voc.js"></script>
 
   <style>
     :root {
@@ -29,210 +32,198 @@
       --radius:        8px;
       --font-body:     'Segoe UI', 'Noto Sans TC', system-ui, sans-serif;
     }
-
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; }
     body {
-      font-family: var(--font-body);
-      font-size: 14px;
-      background: var(--color-bg);
-      color: var(--color-text);
-      min-height: 100vh;
-      padding: 16px;
+      font-family: var(--font-body); font-size: 14px;
+      background: var(--color-bg); color: var(--color-text);
+      min-height: 100vh; padding: 16px;
     }
     h1 { font-size: 1.5rem; color: var(--color-accent); margin-bottom: 4px; }
     h2 { font-size: 0.85rem; color: var(--color-muted); font-weight: 400; margin-bottom: 16px; }
     h3 { font-size: 0.9rem; color: var(--color-accent);
          border-bottom: 1px solid var(--color-border);
          padding-bottom: 4px; margin-bottom: 8px; }
-
     .layout { display: grid; grid-template-columns: 340px 1fr; gap: 16px; align-items: start; }
     @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
-
-    .panel {
-      background: var(--color-surface);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius);
-      padding: 16px;
-    }
-
+    .panel { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius); padding: 16px; }
     .form-group { margin-bottom: 10px; }
     label { display: block; font-size: 0.78rem; color: var(--color-muted); margin-bottom: 3px; }
     input, select {
       width: 100%; padding: 6px 8px;
       background: #0f0f1a; color: var(--color-text);
-      border: 1px solid var(--color-border); border-radius: 5px;
-      font-size: 0.85rem;
+      border: 1px solid var(--color-border); border-radius: 5px; font-size: 0.85rem;
     }
     input:focus, select:focus { outline: 2px solid var(--color-accent); border-color: transparent; }
     .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
     .checkbox-row { display: flex; gap: 12px; align-items: center; margin-top: 4px; flex-wrap: wrap; }
     .checkbox-row label { display: flex; align-items: center; gap: 4px; color: var(--color-text); font-size: 0.82rem; margin-bottom: 0; }
-
     button[type="submit"] {
-      width: 100%; padding: 9px;
-      background: var(--color-accent); color: #0f0f1a;
-      border: none; border-radius: 6px;
-      font-size: 0.9rem; font-weight: 700; cursor: pointer;
-      margin-top: 6px; transition: opacity 0.15s;
+      width: 100%; padding: 9px; background: var(--color-accent); color: #0f0f1a;
+      border: none; border-radius: 6px; font-size: 0.9rem; font-weight: 700;
+      cursor: pointer; margin-top: 6px; transition: opacity 0.15s;
     }
     button[type="submit"]:hover { opacity: 0.85; }
-
-	.right-col { display: flex; flex-direction: column; gap: 14px; }
-
-	.chart-and-matrix {
-	  display: flex;
-	  flex-direction: row;
-	  gap: 14px;
-	  align-items: flex-end;
-	}
-	.chart-and-matrix #chart-wrapper {
-	  flex: 0 0 auto;
-	}
-	.chart-and-matrix .table-card {
-	  flex: 0 0 auto;
-	  min-width: 0;
-	}
-
+    .spin-wrap {
+      display: flex; align-items: stretch;
+      border: 1px solid var(--color-border); border-radius: 5px; overflow: hidden; background: #0f0f1a;
+    }
+    .spin-wrap input[type="number"] {
+      flex: 1; border: none; border-radius: 0; text-align: center;
+      padding: 6px 2px; font-size: 0.85rem; background: transparent; color: var(--color-text);
+      -moz-appearance: textfield; appearance: textfield; min-width: 0;
+    }
+    .spin-wrap input[type="number"]::-webkit-inner-spin-button,
+    .spin-wrap input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+    .spin-wrap input[type="number"]:focus { outline: 2px solid var(--color-accent); }
+    .spin-btn-col { display: flex; flex-direction: column; border-left: 1px solid var(--color-border); }
+    .spin-btn {
+      flex: 1; width: 22px; background: rgba(170,212,255,0.06); color: var(--color-accent);
+      border: none; cursor: pointer; font-size: 0.65rem; line-height: 1; padding: 0;
+      transition: background 0.12s; display: flex; align-items: center; justify-content: center; user-select: none;
+    }
+    .spin-btn:hover  { background: rgba(170,212,255,0.18); }
+    .spin-btn:active { background: rgba(170,212,255,0.30); }
+    .spin-btn-up { border-bottom: 1px solid var(--color-border); }
+    .right-col { display: flex; flex-direction: column; gap: 14px; }
+    .chart-and-matrix { display: flex; flex-direction: row; gap: 14px; align-items: flex-end; }
+    .chart-and-matrix #chart-wrapper { flex: 0 0 auto; }
+    .chart-and-matrix .table-card   { flex: 0 0 auto; min-width: 0; }
     #chart-wrapper {
-      background: var(--color-card);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius);
-      display: flex; justify-content: center; align-items: center;
-      padding: 12px; min-height: 200px;
+      background: var(--color-card); border: 1px solid var(--color-border);
+      border-radius: var(--radius); display: flex; justify-content: center;
+      align-items: center; padding: 12px; min-height: 200px;
     }
     #paper svg { max-width: 100%; height: auto; }
-
     #sunsign-card {
-      display: flex; align-items: center; gap: 10px;
-      padding: 10px 14px;
-      background: var(--color-card);
-      border: 1px solid var(--color-border); border-radius: var(--radius);
+      display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+      background: var(--color-card); border: 1px solid var(--color-border); border-radius: var(--radius);
     }
     #sunsign-label { font-size: 0.75rem; color: var(--color-muted); }
     #sunsign { font-size: 1.15rem; font-weight: 700; color: var(--color-gold); }
-
-    .table-card {
-      background: var(--color-card);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius);
-      overflow: hidden;
-    }
+    .table-card { background: var(--color-card); border: 1px solid var(--color-border); border-radius: var(--radius); overflow: hidden; }
     .table-card-head { padding: 8px 12px; border-bottom: 1px solid var(--color-border); }
     .table-scroll { overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
     thead th {
-      background: rgba(170,212,255,0.06);
-      color: var(--color-accent); font-weight: 600;
-      padding: 6px 8px; text-align: left;
-      border-bottom: 1px solid var(--color-border);
-      white-space: nowrap;
+      background: rgba(170,212,255,0.06); color: var(--color-accent); font-weight: 600;
+      padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--color-border); white-space: nowrap;
     }
     tbody tr:nth-child(even) { background: rgba(255,255,255,0.02); }
     tbody tr:hover { background: rgba(170,212,255,0.06); }
     td { padding: 5px 8px; border-bottom: 1px solid rgba(255,255,255,0.04); white-space: nowrap; }
-    .retro { color: var(--color-retro); font-weight: 700; }
-    .direct { color: var(--color-ok); }
+    .retro        { color: var(--color-retro); font-weight: 700; }
+    .direct       { color: var(--color-ok); }
     .aspect-major { color: var(--color-gold); }
     .aspect-minor { color: var(--color-muted); }
-
-    .placeholder {
-      color: var(--color-muted); font-size: 0.85rem;
-      text-align: center; padding: 40px 0;
-    }
-
-    #output-area { display: none; }
-
+    .placeholder  { color: var(--color-muted); font-size: 0.85rem; text-align: center; padding: 40px 0; }
+    #output-area  { display: none; }
     .aspect-line-row {
-      display: grid;
-      grid-template-columns: auto 1fr auto auto;
-      align-items: center;
-      gap: 6px;
-      padding: 3px 0;
+      display: grid; grid-template-columns: auto 1fr auto auto;
+      align-items: center; gap: 6px; padding: 3px 0;
     }
     .aspect-line-row label {
       display: flex; align-items: center; gap: 4px;
-      color: var(--color-text); font-size: 0.82rem; margin-bottom: 0;
-      white-space: nowrap;
+      color: var(--color-text); font-size: 0.82rem; margin-bottom: 0; white-space: nowrap;
     }
-    .dash-toggle {
-      display: flex; gap: 4px; align-items: center;
-    }
+    .dash-toggle { display: flex; gap: 4px; align-items: center; }
     .dash-toggle label {
       display: flex; align-items: center; gap: 3px;
-      color: var(--color-muted); font-size: 0.75rem; margin-bottom: 0;
-      cursor: pointer;
+      color: var(--color-muted); font-size: 0.75rem; margin-bottom: 0; cursor: pointer;
     }
-    .dash-toggle input[type="radio"] {
-      width: auto; padding: 0;
-      accent-color: var(--color-accent);
-    }
-
-    .orb-input-wrap {
-      display: flex; align-items: center; gap: 3px;
-      white-space: nowrap;
-    }
-    .orb-input-wrap span {
-      font-size: 0.72rem; color: var(--color-muted);
-    }
-    .orb-input {
-      width: 42px !important;
-      padding: 3px 5px !important;
-      font-size: 0.78rem !important;
-      text-align: center;
-    }
-
+    .dash-toggle input[type="radio"] { width: auto; padding: 0; accent-color: var(--color-accent); }
+    .orb-input-wrap { display: flex; align-items: center; gap: 3px; white-space: nowrap; }
+    .orb-input-wrap span { font-size: 0.72rem; color: var(--color-muted); }
+    .orb-input { width: 42px !important; padding: 3px 5px !important; font-size: 0.78rem !important; text-align: center; }
     .ruler-cell { color: var(--color-gold); font-weight: 600; }
-	
-	/* ── 相位矩陣 ── */
-	#aspect-matrix-table {
-	  border-collapse: collapse;
-	  font-size: 0.9rem;
-	  width: auto;
-	}
-	#aspect-matrix-table th,
-	#aspect-matrix-table td {
-	  text-align: center;
-	  vertical-align: middle;
-	  border: 1px solid rgba(255,255,255,0.06);
-	  padding: 2px;
-	  white-space: nowrap;
-	  /* 不要寫 width / height，讓 JS 動態控制 */
-	}
-	#aspect-matrix-table thead th {
-	  background: rgba(170,212,255,0.06);
-	  color: var(--color-accent);
-	  font-weight: 600;
-	  border-bottom: 1px solid var(--color-border);
-	  padding: 4px 6px;
-	  text-align: center;
-	}
-	#aspect-matrix-table tbody th {
-	  background: rgba(170,212,255,0.06);
-	  color: var(--color-accent);
-	  font-weight: 600;
-	  text-align: center;
-	  padding: 4px 6px;
-	}
-	.asp-conjunction  { background: rgba(255,255,255,0.12); color: #fff;    font-weight: 700; }
-	.asp-trine        { background: rgba(39,174,96,0.28);   color: #7ec98f; font-weight: 700; }
-	.asp-sextile      { background: rgba(65,105,225,0.28);  color: #87CEEB; font-weight: 700; }
-	.asp-square       { background: rgba(255,69,0,0.28);    color: #ff8a8a; font-weight: 700; }
-	.asp-opposition   { background: rgba(249,213,110,0.22); color: #f9d56e; font-weight: 700; }
-	.asp-quincunx     { background: rgba(192,132,252,0.22); color: #c084fc; font-weight: 700; }
-	.asp-semisextile  { background: rgba(148,163,184,0.18); color: #94a3b8; font-weight: 700; }
-	.asp-semisquare   { background: rgba(251,146,60,0.22);  color: #fb923c; font-weight: 700; }
-	.asp-sesquisquare { background: rgba(251,146,60,0.22);  color: #fb923c; font-weight: 700; }
-	.asp-quintile     { background: rgba(103,232,249,0.18); color: #67e8f9; font-weight: 700; }
-	.asp-biquintile   { background: rgba(103,232,249,0.18); color: #67e8f9; font-weight: 700; }
-	.asp-self         { background: rgba(255,255,255,0.04); color: var(--color-muted); }
-	.asp-empty        { background: transparent; }
-
-	.dignity-domicile   { color: #7ec98f; font-weight: 600; }   /* 入廟：綠 */
-	.dignity-exaltation { color: #f9d56e; font-weight: 600; }   /* 旺：金 */
-	.dignity-detriment  { color: #ff8a8a; font-weight: 600; }   /* 陷：紅 */
-	.dignity-fall       { color: #fb923c; font-weight: 600; }   /* 弱：橙 */
-	.dignity-peregrine  { color: #8888aa; }                     /* 無特殊：灰 */	
+    #aspect-matrix-table { border-collapse: collapse; font-size: 0.9rem; width: auto; }
+    #aspect-matrix-table th, #aspect-matrix-table td {
+      text-align: center; vertical-align: middle;
+      border: 1px solid rgba(255,255,255,0.06); padding: 2px; white-space: nowrap;
+    }
+    #aspect-matrix-table thead th {
+      background: rgba(170,212,255,0.06); color: var(--color-accent); font-weight: 600;
+      border-bottom: 1px solid var(--color-border); padding: 4px 6px; text-align: center;
+    }
+    #aspect-matrix-table tbody th {
+      background: rgba(170,212,255,0.06); color: var(--color-accent);
+      font-weight: 600; text-align: center; padding: 4px 6px;
+    }
+    .asp-conjunction  { background: rgba(255,255,255,0.12); color: #fff;    font-weight: 700; }
+    .asp-trine        { background: rgba(39,174,96,0.28);   color: #7ec98f; font-weight: 700; }
+    .asp-sextile      { background: rgba(65,105,225,0.28);  color: #87CEEB; font-weight: 700; }
+    .asp-square       { background: rgba(255,69,0,0.28);    color: #ff8a8a; font-weight: 700; }
+    .asp-opposition   { background: rgba(249,213,110,0.22); color: #f9d56e; font-weight: 700; }
+    .asp-quincunx     { background: rgba(192,132,252,0.22); color: #c084fc; font-weight: 700; }
+    .asp-semisextile  { background: rgba(148,163,184,0.18); color: #94a3b8; font-weight: 700; }
+    .asp-semisquare   { background: rgba(251,146,60,0.22);  color: #fb923c; font-weight: 700; }
+    .asp-sesquisquare { background: rgba(251,146,60,0.22);  color: #fb923c; font-weight: 700; }
+    .asp-quintile     { background: rgba(103,232,249,0.18); color: #67e8f9; font-weight: 700; }
+    .asp-biquintile   { background: rgba(103,232,249,0.18); color: #67e8f9; font-weight: 700; }
+    .asp-self         { background: rgba(255,255,255,0.04); color: var(--color-muted); }
+    .asp-empty        { background: transparent; }
+    .dignity-domicile   { color: #7ec98f; font-weight: 600; }
+    .dignity-exaltation { color: #f9d56e; font-weight: 600; }
+    .dignity-detriment  { color: #ff8a8a; font-weight: 600; }
+    .dignity-fall       { color: #fb923c; font-weight: 600; }
+    .dignity-peregrine  { color: #8888aa; }
+    #chart-patterns-container {
+      display: none; background: var(--color-card);
+      border: 1px solid var(--color-border); border-radius: var(--radius); overflow: hidden;
+    }
+    #chart-patterns-container .table-card-head { padding: 8px 12px; border-bottom: 1px solid var(--color-border); }
+    #chart-patterns-list { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 12px; }
+    .pattern-item {
+      background: rgba(255,255,255,0.04); border: 1px solid var(--color-border);
+      border-left: 3px solid #aad4f5; border-radius: 6px;
+      padding: 8px 12px; min-width: 200px; flex: 1 1 200px;
+    }
+    .pattern-header { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+    .pattern-symbol { font-size: 1.1rem; line-height: 1; }
+    .pattern-label  { font-size: 0.88rem; font-weight: 700; }
+    .pattern-desc   { font-size: 0.78rem; color: var(--color-muted); line-height: 1.4; }
+    .pattern-none   { font-size: 0.82rem; color: var(--color-muted); padding: 6px 2px; }
+    #voc-section {
+      background: var(--color-card); border: 1px solid var(--color-border);
+      border-radius: var(--radius); overflow: hidden; display: none;
+    }
+    .voc-head {
+      padding: 8px 12px; border-bottom: 1px solid var(--color-border);
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    }
+    .voc-head h3  { margin: 0; border: none; padding: 0; flex: 1; }
+    .voc-range-badge {
+      font-size: 0.72rem; color: var(--color-muted);
+      background: rgba(170,212,255,0.07); border: 1px solid var(--color-border);
+      border-radius: 4px; padding: 2px 8px; white-space: nowrap;
+    }
+    .voc-tz-badge {
+      font-size: 0.72rem; color: var(--color-gold);
+      background: rgba(249,213,110,0.08); border: 1px solid rgba(249,213,110,0.25);
+      border-radius: 4px; padding: 2px 8px; white-space: nowrap;
+    }
+    #voc-loading { padding: 20px; text-align: center; color: var(--color-muted); font-size: 0.85rem; display: none; }
+    #voc-empty   { padding: 20px; text-align: center; color: var(--color-muted); font-size: 0.85rem; display: none; }
+    #voc-table-wrap { overflow-x: auto; display: none; }
+    #voc-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    #voc-table thead th {
+      background: rgba(170,212,255,0.06); color: var(--color-accent); font-weight: 600;
+      padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--color-border); white-space: nowrap;
+    }
+    #voc-table tbody tr:nth-child(even) { background: rgba(255,255,255,0.02); }
+    #voc-table tbody tr:hover           { background: rgba(170,212,255,0.06); }
+    #voc-table td { padding: 5px 8px; border-bottom: 1px solid rgba(255,255,255,0.04); white-space: nowrap; }
+    .voc-time    { font-variant-numeric: tabular-nums; }
+    .voc-asp-sym { font-size: 1.1rem; margin-right: 3px; }
+    .voc-moon    { color: #aad4f5; font-weight: 600; }
+    .voc-planet  { color: var(--color-gold); }
+    .voc-sign    { color: #7ec98f; font-weight: 600; }
+    .voc-dur     { color: var(--color-muted); font-size: 0.78rem; }
+    .voc-active  { color: #ff8a8a; font-weight: 700; }
+    .voc-ended   { color: var(--color-muted); }
+    .voc-row-active { background: rgba(255,138,138,0.08) !important; }
+    .voc-row-active:hover { background: rgba(255,138,138,0.14) !important; }
   </style>
 </head>
 <body>
@@ -244,6 +235,7 @@
 
   <div class="panel">
     <form id="form">
+
       <div class="row2">
         <div class="form-group">
           <label>緯度 Latitude</label>
@@ -254,14 +246,69 @@
           <input id="longitude" type="number" step="any" min="-180" max="180" value="121.51">
         </div>
       </div>
+
       <div class="form-group">
         <label>出生日期</label>
-        <input id="date" type="date">
+        <div class="row3">
+          <div>
+            <label style="font-size:0.72rem;color:var(--color-muted);margin-bottom:2px;">年</label>
+            <div class="spin-wrap">
+              <input id="date-year" type="number" min="1" max="9999" placeholder="年">
+              <div class="spin-btn-col">
+                <button type="button" class="spin-btn spin-btn-up" data-target="date-year" data-step="1">▲</button>
+                <button type="button" class="spin-btn spin-btn-dn" data-target="date-year" data-step="-1">▼</button>
+              </div>
+            </div>
+          </div>
+          <div>
+            <label style="font-size:0.72rem;color:var(--color-muted);margin-bottom:2px;">月</label>
+            <div class="spin-wrap">
+              <input id="date-month" type="number" min="1" max="12" placeholder="月">
+              <div class="spin-btn-col">
+                <button type="button" class="spin-btn spin-btn-up" data-target="date-month" data-step="1" data-min="1" data-max="12">▲</button>
+                <button type="button" class="spin-btn spin-btn-dn" data-target="date-month" data-step="-1" data-min="1" data-max="12">▼</button>
+              </div>
+            </div>
+          </div>
+          <div>
+            <label style="font-size:0.72rem;color:var(--color-muted);margin-bottom:2px;">日</label>
+            <div class="spin-wrap">
+              <input id="date-day" type="number" min="1" max="31" placeholder="日">
+              <div class="spin-btn-col">
+                <button type="button" class="spin-btn spin-btn-up" data-target="date-day" data-step="1" data-min="1" data-max="31">▲</button>
+                <button type="button" class="spin-btn spin-btn-dn" data-target="date-day" data-step="-1" data-min="1" data-max="31">▼</button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
+
       <div class="form-group">
         <label>出生時間（當地）</label>
-        <input id="time" type="time">
+        <div class="row2">
+          <div>
+            <label style="font-size:0.72rem;color:var(--color-muted);margin-bottom:2px;">時（0–23）</label>
+            <div class="spin-wrap">
+              <input id="time-hour" type="number" min="0" max="23" placeholder="時">
+              <div class="spin-btn-col">
+                <button type="button" class="spin-btn spin-btn-up" data-target="time-hour" data-step="1" data-min="0" data-max="23">▲</button>
+                <button type="button" class="spin-btn spin-btn-dn" data-target="time-hour" data-step="-1" data-min="0" data-max="23">▼</button>
+              </div>
+            </div>
+          </div>
+          <div>
+            <label style="font-size:0.72rem;color:var(--color-muted);margin-bottom:2px;">分（0–59）</label>
+            <div class="spin-wrap">
+              <input id="time-minute" type="number" min="0" max="59" placeholder="分">
+              <div class="spin-btn-col">
+                <button type="button" class="spin-btn spin-btn-up" data-target="time-minute" data-step="1" data-min="0" data-max="59">▲</button>
+                <button type="button" class="spin-btn spin-btn-dn" data-target="time-minute" data-step="-1" data-min="0" data-max="59">▼</button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
+
       <div class="form-group">
         <label>語言</label>
         <select id="language-select">
@@ -270,6 +317,7 @@
           <option value="es">Español</option>
         </select>
       </div>
+
       <div class="row2">
         <div class="form-group">
           <label>黃道系統</label>
@@ -291,6 +339,7 @@
           </select>
         </div>
       </div>
+
       <div class="form-group">
         <label>相位等級</label>
         <div class="checkbox-row">
@@ -298,10 +347,12 @@
           <label><input id="aspect-minor" type="checkbox"> 次要相位</label>
         </div>
       </div>
+
       <div class="form-group">
         <label>星盤尺寸 (px)</label>
         <input id="chart-size" type="number" min="400" max="900" step="50" value="600">
       </div>
+
       <div class="row2">
         <div class="form-group">
           <label>行星符號大小 <span id="planet-size-val">1</span>x</label>
@@ -316,17 +367,17 @@
             style="width:100%;accent-color:var(--color-accent)">
         </div>
       </div>
+
       <div class="form-group">
         <label>行星標示模式</label>
         <div class="checkbox-row">
-          <label><input id="planet-mode-symbol" type="radio" name="planet-mode" value="symbol"> 符號</label>
+          <label><input id="planet-mode-symbol"  type="radio" name="planet-mode" value="symbol"> 符號</label>
           <label><input id="planet-mode-chinese" type="radio" name="planet-mode" value="chinese" checked> 中文單字</label>
         </div>
       </div>
 
       <div class="form-group">
         <label>相位連線顯示</label>
-
         <div class="aspect-line-row">
           <label><input id="line-opposition" type="checkbox" checked> 180° 對分</label>
           <div class="orb-input-wrap">
@@ -339,7 +390,6 @@
             <label><input type="radio" name="dash-opposition" value="dash" checked> 虛線</label>
           </div>
         </div>
-
         <div class="aspect-line-row">
           <label><input id="line-trine" type="checkbox" checked> 120° 三分</label>
           <div class="orb-input-wrap">
@@ -352,7 +402,6 @@
             <label><input type="radio" name="dash-trine" value="dash"> 虛線</label>
           </div>
         </div>
-
         <div class="aspect-line-row">
           <label><input id="line-square" type="checkbox" checked> 90° 四分</label>
           <div class="orb-input-wrap">
@@ -365,7 +414,6 @@
             <label><input type="radio" name="dash-square" value="dash"> 虛線</label>
           </div>
         </div>
-
         <div class="aspect-line-row">
           <label><input id="line-sextile" type="checkbox" checked> 60° 六分</label>
           <div class="orb-input-wrap">
@@ -378,7 +426,6 @@
             <label><input type="radio" name="dash-sextile" value="dash" checked> 虛線</label>
           </div>
         </div>
-
       </div>
 
       <button type="submit">✦ 繪製星盤</button>
@@ -387,22 +434,53 @@
 
   <div class="right-col">
 
-	<div class="chart-and-matrix">
-    <div id="chart-wrapper">
-      <div class="placeholder">請填寫左側資料後按「繪製星盤」</div>
+    <div class="chart-and-matrix">
+      <div id="chart-wrapper">
+        <div class="placeholder">請填寫左側資料後按「繪製星盤」</div>
+      </div>
+      <div class="table-card" id="aspect-matrix-card" style="display:none;">
+        <div class="table-card-head"><h3>相位矩陣 Aspect Matrix</h3></div>
+        <div class="table-scroll">
+          <table id="aspect-matrix-table"></table>
+        </div>
+      </div>
     </div>
 
-        <!-- 相位矩陣 -->
-        <div class="table-card" id="aspect-matrix-card" style="display:none;">
-          <div class="table-card-head"><h3>相位矩陣 Aspect Matrix</h3></div>
-          <div class="table-scroll">
-            <table id="aspect-matrix-table"></table>
-          </div>
-        </div>
-	</div>
-		
-    <div id="output-area">
+    <div id="voc-section">
+      <div class="voc-head">
+        <h3>🌙 月亮空亡 Void of Course</h3>
+        <span class="voc-range-badge" id="voc-range-badge">指定時間起 3 天</span>
+        <!-- ★ 新增：時區標示 -->
+        <span class="voc-tz-badge" id="voc-tz-badge">UTC+0</span>
+      </div>
+      <div id="voc-loading">⏳ 計算中…</div>
+      <div id="voc-empty">此 3 天內無月亮空亡事件</div>
+      <div id="voc-table-wrap">
+        <table id="voc-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <!-- ★ 欄位標題改為當地時間，移除 (UT) -->
+              <th id="th-voc-start">空亡開始（當地）</th>
+              <th>觸發相位</th>
+              <th>月亮 ↔ 行星</th>
+              <th id="th-voc-end">空亡結束（當地）</th>
+              <th>入座星座</th>
+              <th>持續時間</th>
+              <th>狀態</th>
+            </tr>
+          </thead>
+          <tbody id="voc-tbody"></tbody>
+        </table>
+      </div>
+    </div>
 
+    <div id="chart-patterns-container">
+      <div class="table-card-head"><h3>星盤圖形 Chart Patterns</h3></div>
+      <div id="chart-patterns-list"></div>
+    </div>
+
+    <div id="output-area">
       <div id="sunsign-card">
         <div>
           <div id="sunsign-label">太陽星座 Sun Sign</div>
@@ -410,16 +488,11 @@
         </div>
         <div style="margin-left:auto; font-size:0.78rem; color:var(--color-muted);" id="asc-quick"></div>
       </div>
-
       <div class="table-card">
         <div class="table-card-head"><h3 id="h-angles">天文角點 Angles</h3></div>
         <div class="table-scroll">
           <table>
-            <thead><tr>
-              <th></th>
-              <th id="th-asc">上升 Asc</th>
-              <th id="th-mc">天頂 MC</th>
-            </tr></thead>
+            <thead><tr><th></th><th id="th-asc">上升 Asc</th><th id="th-mc">天頂 MC</th></tr></thead>
             <tbody>
               <tr><td id="th-hd">地平度數</td><td id="asc-a"></td><td id="mc-a"></td></tr>
               <tr><td id="th-ed">黃道度數</td><td id="asc-b"></td><td id="mc-b"></td></tr>
@@ -428,1018 +501,338 @@
           </table>
         </div>
       </div>
-
       <div class="table-card">
         <div class="table-card-head"><h3>宮位 Houses</h3></div>
         <div class="table-scroll">
           <table>
-            <thead><tr>
-				<th>宮</th><th>起始黃道°</th><th>終止黃道°</th><th>星座</th><th>宮主星</th><th>尊貴</th>            </tr></thead>
+            <thead><tr><th>宮</th><th>起始黃道°</th><th>終止黃道°</th><th>星座</th><th>宮主星</th><th>尊貴</th></tr></thead>
             <tbody id="houses-tbody"></tbody>
           </table>
         </div>
       </div>
-
       <div class="table-card">
         <div class="table-card-head"><h3>行星位置 Planets</h3></div>
         <div class="table-scroll">
           <table>
-            <thead><tr>
-              <th>天體</th><th>黃道°</th><th>星座</th><th>度分秒</th><th>宮位</th><th>順/逆</th>
-            </tr></thead>
+            <thead><tr><th>天體</th><th>黃道°</th><th>星座</th><th>度分秒</th><th>宮位</th><th>順/逆</th></tr></thead>
             <tbody id="bodies-tbody"></tbody>
           </table>
         </div>
       </div>
-
       <div class="table-card">
         <div class="table-card-head"><h3>天體點 Points</h3></div>
         <div class="table-scroll">
           <table>
-            <thead><tr>
-              <th>點</th><th>黃道°</th><th>星座</th><th>度分秒</th><th>宮位</th>
-            </tr></thead>
+            <thead><tr><th>點</th><th>黃道°</th><th>星座</th><th>度分秒</th><th>宮位</th></tr></thead>
             <tbody id="points-tbody"></tbody>
           </table>
         </div>
       </div>
-
       <div class="table-card">
         <div class="table-card-head"><h3>相位 Aspects</h3></div>
         <div class="table-scroll">
           <table>
-            <thead><tr>
-              <th>天體1</th><th>相位</th><th>天體2</th><th>容許度</th><th>入/出相</th>
-            <th>等級</th>
-            </tr></thead>
+            <thead><tr><th>天體1</th><th>相位</th><th>天體2</th><th>容許度</th><th>入/出相</th><th>等級</th></tr></thead>
             <tbody id="aspects-tbody"></tbody>
           </table>
         </div>
       </div>
-
     </div>
+
   </div>
 </div>
 
-
-
 <script>
-// ─────────────────────────────────────────────────────────────
-// 【還原】頁面載入時自動填入當前日期與時間作為預設值
-// ─────────────────────────────────────────────────────────────
-(function() {
-  var now = new Date();
-  var pad = function(n) { return String(n).padStart(2,'0'); };
-  document.getElementById('date').value =
-    now.getFullYear() + '-' + pad(now.getMonth()+1) + '-' + pad(now.getDate());
-  document.getElementById('time').value =
-    pad(now.getHours()) + ':' + pad(now.getMinutes());
-})();
-
-var mod360 = EphemerisUtils.mod360;
-var mod    = EphemerisUtils.mod;
-
-// ─────────────────────────────────────────────────────────────
-// 【工具】將本地時間字串轉為 UTC Date 物件
-// 用途：供 Astronomy.AstroTime 使用（行星位置計算）
-// ─────────────────────────────────────────────────────────────
-function localToUtcDate(dateStr, timeStr, geoLon) {
-  var dp = dateStr.split('-');
-  var tp = timeStr.split(':');
-  var year   = parseInt(dp[0]);
-  var month  = parseInt(dp[1]) - 1;
-  var day    = parseInt(dp[2]);
-  var hour   = parseInt(tp[0]);
-  var minute = parseInt(tp[1]);
-  var tzOffsetHours = Math.round(geoLon / 15);
-  var localMs = Date.UTC(year, month, day, hour, minute, 0);
-  var utcMs   = localMs - tzOffsetHours * 3600000;
-  return new Date(utcMs);
-}
-
-var SIGN_DATA = [
-  {key:'aries',       symbol:'♈',start:0},  {key:'taurus',      symbol:'♉',start:30},
-  {key:'gemini',      symbol:'♊',start:60}, {key:'cancer',      symbol:'♋',start:90},
-  {key:'leo',         symbol:'♌',start:120},{key:'virgo',       symbol:'♍',start:150},
-  {key:'libra',       symbol:'♎',start:180},{key:'scorpio',     symbol:'♏',start:210},
-  {key:'sagittarius', symbol:'♐',start:240},{key:'capricorn',   symbol:'♑',start:270},
-  {key:'aquarius',    symbol:'♒',start:300},{key:'pisces',      symbol:'♓',start:330}
-];
-
-var ASPECTS_DEF = [
-  {key:'conjunction', angle:0,   orb:8, level:'major', symbol:'☌'},
-  {key:'opposition',  angle:180, orb:8, level:'major', symbol:'☍'},
-  {key:'trine',       angle:120, orb:8, level:'major', symbol:'△'},
-  {key:'square',      angle:90,  orb:8, level:'major', symbol:'□'},
-  {key:'sextile',     angle:60,  orb:6, level:'major', symbol:'⚹'},
-  {key:'quincunx',    angle:150, orb:5, level:'minor', symbol:'⚻'},
-  {key:'semisextile', angle:30,  orb:3, level:'minor', symbol:'⚺'},
-  {key:'semisquare',  angle:45,  orb:3, level:'minor', symbol:'∠'},
-  {key:'sesquisquare',angle:135, orb:3, level:'minor', symbol:'⚼'},
-  {key:'quintile',    angle:72,  orb:2, level:'minor', symbol:'Q'},
-  {key:'biquintile',  angle:144, orb:2, level:'minor', symbol:'bQ'}
-];
-
-var ASTROCHART_PLANET_MAP = {
-  sun:'Sun', moon:'Moon', mercury:'Mercury', venus:'Venus', mars:'Mars',
-  jupiter:'Jupiter', saturn:'Saturn', uranus:'Uranus', neptune:'Neptune', pluto:'Pluto',
-  northNode:'NNode', lilith:'Lilith',
-  asc:'Asc', mc:'Mc'
-};
-
-var PLANET_CHINESE = {
-  'Sun':'日', 'Moon':'月', 'Mercury':'水', 'Venus':'金', 'Mars':'火',
-  'Jupiter':'木', 'Saturn':'土', 'Uranus':'天', 'Neptune':'海',
-  'Pluto':'冥', 'NNode':'北', 'Lilith':'莉',
-  'Asc':'升', 'Mc':'頂'
-};
-
-var RULER_DISPLAY = {
-  sun:     '☉ 太陽',
-  moon:    '☽ 月亮',
-  mercury: '☿ 水星',
-  venus:   '♀ 金星',
-  mars:    '♂ 火星',
-  jupiter: '♃ 木星',
-  saturn:  '♄ 土星',
-  uranus:  '♅ 天王星',
-  neptune: '♆ 海王星',
-  pluto:   '♇ 冥王星'
-};
-
-var ANGLES_I18N = {
-  zh: {
-    sectionTitle: '天文角點 Angles',
-    thAsc:        '上升 Asc',
-    thMc:         '天頂 MC',
-    thHd:         '地平度數',
-    thEd:         '黃道度數',
-    thDms:        '星座度分秒'
-  },
-  en: {
-    sectionTitle: 'Angles',
-    thAsc:        'Ascendant',
-    thMc:         'Midheaven (MC)',
-    thHd:         'Horizon Degrees',
-    thEd:         'Ecliptic Degrees',
-    thDms:        'Sign D° M\' S"'
-  },
-  es: {
-    sectionTitle: 'Ángulos',
-    thAsc:        'Ascendente',
-    thMc:         'Medio Cielo (MC)',
-    thHd:         'Grados Horizonte',
-    thEd:         'Grados Eclíptica',
-    thDms:        'Signo G° M\' S"'
-  }
-};
-
-function updateAnglesI18n(lang) {
-  var labels = ANGLES_I18N[lang] || ANGLES_I18N['zh'];
-  document.getElementById('h-angles').textContent = labels.sectionTitle;
-  document.getElementById('th-asc').textContent   = labels.thAsc;
-  document.getElementById('th-mc').textContent    = labels.thMc;
-  document.getElementById('th-hd').textContent    = labels.thHd;
-  document.getElementById('th-ed').textContent    = labels.thEd;
-  document.getElementById('th-dms').textContent   = labels.thDms;
-}
-
-function t(key, lang) {
-  var L = (typeof LANGUAGE !== 'undefined') ? (LANGUAGE[lang] || LANGUAGE['en']) : {};
-  if (key === 'asc') return '上升 Asc';
-  if (key === 'mc')  return '天頂 MC';
-  return L[key] || key;
-}
-
-function getSignForDD(dd) {
-  dd = mod360(dd);
-  return SIGN_DATA[Math.floor(dd / 30)] || SIGN_DATA[0];
-}
-
-function ddToSignDMS(dd, lang) {
-  var sign   = getSignForDD(dd);
-  var within = mod360(dd) - sign.start;
-  var d = Math.floor(within);
-  var m = Math.floor((within - d) * 60);
-  var s = Math.round(((within - d) * 60 - m) * 60);
-  if (s===60){s=0;m++;} if (m===60){m=0;d++;}
-  return sign.symbol + ' ' + t(sign.key,lang) + ' ' + d + '° ' + m + "' " + s + '"';
-}
-
-function getSignLabel(dd, lang) {
-  var sign = getSignForDD(dd);
-  return sign.symbol + ' ' + t(sign.key, lang);
-}
-
-function getSignIngress(dd) {
-  var sign   = getSignForDD(dd);
-  var within = mod360(dd) - sign.start;
-  var d = Math.floor(within);
-  var m = Math.floor((within - d) * 60);
-  var s = Math.round(((within - d) * 60 - m) * 60);
-  if (s===60){s=0;m++;} if (m===60){m=0;d++;}
-  return d + '° ' + m + "' " + s + '"';
-}
-
-function calcDynamicAyanamsa(dateStr, timeStr, geoLon) {
-  var utcDate = localToUtcDate(dateStr, timeStr, geoLon);
-  var utcHour = utcDate.getUTCHours() + utcDate.getUTCMinutes() / 60;
-  var jde = AstroHouses.dateToJDE(
-    utcDate.getUTCFullYear(),
-    utcDate.getUTCMonth() + 1,
-    utcDate.getUTCDate(),
-    utcHour
-  );
-  return AstroHouses.calcAyanamsa(jde, 'lahiri');
-}
-
-function toDisplayLon(tropicalLon, zodiac, ayanamsa) {
-  return zodiac === 'sidereal'
-    ? mod360(tropicalLon - ayanamsa)
-    : mod360(tropicalLon);
-}
-
-// ─────────────────────────────────────────────────────────────
-// calcAngles：依照 astro-angles.js 設計規範呼叫
-//   1. 傳入「當地時間」（不預先轉 UTC）
-//   2. 明確傳入 utcOffsetHours
-//   3. longitude 使用東正西負標準值（不取負號）
-//   4. hour/minute/second 分開傳入
-// ─────────────────────────────────────────────────────────────
-function calcAngles(dateStr, timeStr, lat, geoLon) {
-  // 修正：統一使用 localToUtcDate 換算 UTC，避免凌晨跨日錯誤
-  var utcDate = localToUtcDate(dateStr, timeStr, geoLon);
-
-  var result = AstroAngles.calcAngles({
-    year:           utcDate.getUTCFullYear(),
-    month:          utcDate.getUTCMonth() + 1,
-    date:           utcDate.getUTCDate(),
-    hour:           utcDate.getUTCHours(),
-    minute:         utcDate.getUTCMinutes(),
-    second:         utcDate.getUTCSeconds(),
-    latitude:       lat,
-    longitude:      geoLon,
-    utcOffsetHours: 0  // 已傳入 UTC 時間，offset 設為 0
-  });
-
-  return {
-    ascTropical: result.ascendant,
-    mcTropical:  result.midheaven,
-    ramc:        result.lst,
-    obliquity:   AstronomyUtils.getObliquityEcliptic(result.julianDate)
-  };
-}
-
-function calcHouseCusps(ang, lat, houseSystem, zodiac, ayanamsa) {
-  var cusps = AstroHouses.calculateHouseCusps(houseSystem, {
-    rightAscensionMC:  ang.ramc,
-    midheaven:         ang.mcTropical,
-    ascendant:         ang.ascTropical,
-    latitude:          lat,
-    obliquityEcliptic: ang.obliquity,
-    zodiac:            zodiac,
-    ayanamsa:          zodiac === 'sidereal' ? ayanamsa : null
-  });
-  if (zodiac==='sidereal' && houseSystem!=='whole-sign' && houseSystem!=='equal-house') {
-    cusps = cusps.map(function(c){ return mod360(c - ayanamsa); });
-  }
-  return cusps;
-}
-
-function getHouseNumber(lon, cusps) {
-  lon = mod360(lon);
-  for (var i=0; i<12; i++) {
-    var s = mod360(cusps[i]), e = mod360(cusps[(i+1)%12]);
-    var inside = (Math.abs(s-e)<0.0001) ? false
-               : (s<e) ? (lon>=s && lon<e)
-               : (lon>=s || lon<e);
-    if (inside) return i+1;
-  }
-  var best=0, bestD=360;
-  for (var j=0;j<12;j++){var d=mod360(lon-mod360(cusps[j]));if(d<bestD){bestD=d;best=j;}}
-  return best+1;
-}
-
-function getBodyTropicalLon(bodyKey, astroTime) {
-  if (bodyKey==='sun')  return mod360(Astronomy.SunPosition(astroTime).elon);
-  if (bodyKey==='moon') return mod360(Astronomy.EclipticGeoMoon(astroTime).lon);
-  if (bodyKey==='northNode'||bodyKey==='southNode') {
-    var T=astroTime.tt/36525, omega=mod360(125.04452-1934.136261*T);
-    return bodyKey==='northNode' ? omega : mod360(omega+180);
-  }
-  if (bodyKey==='lilith') {
-    var T = astroTime.tt / 36525.0;
-    var perigee = mod360(
-      83.3532465
-      + 4069.0137287 * T
-      - 0.0103200  * T * T
-      - T * T * T / 80053.0
-      + T * T * T * T / 18999000.0
-    );
-    return mod360(perigee + 180);
-  }
-  var m={mercury:'Mercury',venus:'Venus',mars:'Mars',jupiter:'Jupiter',
-         saturn:'Saturn',uranus:'Uranus',neptune:'Neptune',pluto:'Pluto'};
-  if (m[bodyKey]) return mod360(Astronomy.Ecliptic(Astronomy.GeoVector(m[bodyKey],astroTime,true)).elon);
-  return 0;
-}
-
-function isRetrograde(bodyKey, astroTime) {
-  if ({sun:1,moon:1,northNode:1,southNode:1,lilith:1}[bodyKey]) return false;
-  var dt=0.1;
-  var l1=getBodyTropicalLon(bodyKey, new Astronomy.AstroTime(astroTime.ut-dt));
-  var l2=getBodyTropicalLon(bodyKey, new Astronomy.AstroTime(astroTime.ut+dt));
-  var diff=l2-l1;
-  if(diff>180) diff-=360; if(diff<-180) diff+=360;
-  return diff<0;
-}
-
-function calcAspects(bodyLons, includeMajor, includeMinor, orbOverrides) {
-  var results=[], keys=Object.keys(bodyLons);
-  for(var i=0;i<keys.length;i++){
-    for(var j=i+1;j<keys.length;j++){
-      if ((keys[i]==='asc'&&keys[j]==='mc')||(keys[i]==='mc'&&keys[j]==='asc')) continue;
-      var diff=Math.abs(bodyLons[keys[i]]-bodyLons[keys[j]]);
-      if(diff>180) diff=360-diff;
-      ASPECTS_DEF.forEach(function(asp){
-        if(asp.level==='major'&&!includeMajor) return;
-        if(asp.level==='minor'&&!includeMinor) return;
-        var effectiveOrb = (orbOverrides && orbOverrides[asp.key] != null)
-          ? orbOverrides[asp.key]
-          : asp.orb;
-        var orb=Math.abs(diff-asp.angle);
-        if(orb<=effectiveOrb) results.push({
-          body1:keys[i], body2:keys[j],
-          aspect:asp.key, symbol:asp.symbol,
-          orb:orb.toFixed(2), level:asp.level
-        });
-      });
-    }
-  }
-  return results;
-}
-
-// ── 相位矩陣 ──────────────────────────────────────────────
-var ASP_ZH = {
-  conjunction:  '合',
-  opposition:   '對',
-  trine:        '三',
-  square:       '刑',
-  sextile:      '六',
-  quincunx:     '補',
-  semisextile:  '半',
-  semisquare:   '刑',
-  sesquisquare: '倍',
-  quintile:     '五',
-  biquintile:   '雙'
-};
-
-var MATRIX_KEYS = ['sun','moon','mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto','northNode','lilith','asc','mc'];
-var MATRIX_ABBR = {
-  sun:'日', moon:'月', mercury:'水', venus:'金', mars:'火',
-  jupiter:'木', saturn:'土', uranus:'天', neptune:'海',
-  pluto:'冥', northNode:'北', lilith:'莉',
-  asc:'升', mc:'頂'
-};
-
-
-function buildAspectMatrix(allLons, inclMajor, inclMinor, orbOverrides) {
-  var table = document.getElementById('aspect-matrix-table');
-  if (!table) return;
-  table.innerHTML = '';
-
-  var keys = MATRIX_KEYS.filter(function(k){ return allLons[k] != null; });
-
-  // 建立相位查找 map
-  var aspMap = {};
-  for (var i = 0; i < keys.length; i++) {
-    for (var j = i + 1; j < keys.length; j++) {
-      if ((keys[i]==='asc'&&keys[j]==='mc')||(keys[i]==='mc'&&keys[j]==='asc')) continue;
-      var diff = Math.abs(allLons[keys[i]] - allLons[keys[j]]);
-      if (diff > 180) diff = 360 - diff;
-      var best = null, bestOrb = 999;
-      ASPECTS_DEF.forEach(function(asp) {
-        if (asp.level === 'major' && !inclMajor) return;
-        if (asp.level === 'minor' && !inclMinor) return;
-        var effectiveOrb = (orbOverrides && orbOverrides[asp.key] != null)
-          ? orbOverrides[asp.key] : asp.orb;
-        var orb = Math.abs(diff - asp.angle);
-        if (orb <= effectiveOrb && orb < bestOrb) {
-          bestOrb = orb;
-          best = asp;
-        }
-      });
-      if (best) {
-        aspMap[keys[i] + '||' + keys[j]] = best;
-        aspMap[keys[j] + '||' + keys[i]] = best;
-      }
-    }
-  }
-
-
-
-  // 表身（下三角矩陣）
-  var tbody = document.createElement('tbody');
-  keys.forEach(function(rowKey, ri) {
-    var tr = document.createElement('tr');
-    var th = document.createElement('th');
-    th.textContent = MATRIX_ABBR[rowKey] || rowKey;
-    tr.appendChild(th);
-
-    keys.forEach(function(colKey, ci) {
-      var td = document.createElement('td');
-      if (ci > ri) {
-		  td.className = 'asp-empty';
-		  td.textContent = '';
-		  td.style.border = 'none';  /* ← 右上角格子連框線也隱藏 */
-      } else if (ci === ri) {
-        td.className = 'asp-self';
-        td.textContent = MATRIX_ABBR[rowKey] || rowKey;
-      } else {
-        var asp = aspMap[rowKey + '||' + colKey];
-        if (asp) {
-          td.textContent = ASP_ZH[asp.key] || asp.symbol;  // ← 改成中文文字
-          td.className = 'asp-' + asp.key;
-          td.title = ASP_ZH[asp.key] || asp.key;
-        } else {
-          td.className = 'asp-empty';
-          td.textContent = '';
-        }
-      }
-      tr.appendChild(td);
-    });
-    tbody.appendChild(tr);
-  });
-  table.appendChild(tbody);
-}
-
-function getDashArray(name) {
-  var val = document.querySelector('input[name="dash-' + name + '"]:checked');
-  return (val && val.value === 'dash') ? '6,4' : 'none';
-}
-
-function getOrbValue(id) {
-  var el = document.getElementById(id);
-  var v = el ? parseFloat(el.value) : NaN;
-  return isNaN(v) ? 6 : v;
-}
-
-function drawAspectLines(allLons, cuspsArr, chartSize, aspectStroke,
-                         lineOpp, lineTrine, lineSquare, lineSextile,
-                         dashOpp, dashTrine, dashSquare, dashSextile,
-                         orbOpp, orbTrine, orbSquare, orbSextile) {
-  var svgEl = document.querySelector('#paper svg');
-  if (!svgEl) return;
-
-  var sz      = parseInt(chartSize) || 620;
-  var cx      = sz / 2;
-  var cy      = sz / 2;
-  var margin  = 50;
-  var outerR  = sz / 2 - margin;
-  var innerR  = outerR / 2;
-  var shift   = (360 - cuspsArr[0]) % 360;
-
-  function lonToXY(lon) {
-    var angleRad = (180 - lon - shift) * Math.PI / 180;
-    return {
-      x: cx + innerR * Math.cos(angleRad),
-      y: cy + innerR * Math.sin(angleRad)
-    };
-  }
-
-  var aspSpecs = [];
-  if (lineOpp)     aspSpecs.push({ angle: 180, orb: orbOpp,     color: '#A020F0', dash: dashOpp });
-  if (lineTrine)   aspSpecs.push({ angle: 120, orb: orbTrine,   color: '#7ec98f', dash: dashTrine });
-  if (lineSquare)  aspSpecs.push({ angle: 90,  orb: orbSquare,  color: '#ff6b6b', dash: dashSquare });
-  if (lineSextile) aspSpecs.push({ angle: 60,  orb: orbSextile, color: '#4169E1', dash: dashSextile });
-
-  if (aspSpecs.length === 0) return;
-
-  var strokeW = Math.max(0.5, aspectStroke);
-  var lonsForLines = {};
-  Object.keys(allLons).forEach(function(k) {
-    if (k !== 'southNode') { lonsForLines[k] = allLons[k]; }
-  });
-
-  var keys = Object.keys(lonsForLines);
-  var lines = [], seen = {};
-
-  for (var i = 0; i < keys.length; i++) {
-    for (var j = i + 1; j < keys.length; j++) {
-      if ((keys[i]==='asc'&&keys[j]==='mc')||(keys[i]==='mc'&&keys[j]==='asc')) continue;
-      var diff = Math.abs(lonsForLines[keys[i]] - lonsForLines[keys[j]]);
-      if (diff > 180) diff = 360 - diff;
-      aspSpecs.forEach(function(spec) {
-        if (Math.abs(diff - spec.angle) <= spec.orb) {
-          var key = spec.angle + '_' + keys[i] + '_' + keys[j];
-          if (!seen[key]) {
-            seen[key] = true;
-            lines.push({ a: keys[i], b: keys[j], color: spec.color, dash: spec.dash });
-          }
-        }
-      });
-    }
-  }
-
-  if (lines.length === 0) return;
-
-  var layerId = 'fallback-aspect-lines-layer';
-  var old = svgEl.querySelector('#' + layerId);
-  if (old) old.parentNode.removeChild(old);
-
-  var layer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-  layer.setAttribute('id', layerId);
-  svgEl.insertBefore(layer, svgEl.firstChild);
-
-  lines.forEach(function(item) {
-    var p1 = lonToXY(lonsForLines[item.a]);
-    var p2 = lonToXY(lonsForLines[item.b]);
-    var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    line.setAttribute('x1', p1.x.toFixed(2));
-    line.setAttribute('y1', p1.y.toFixed(2));
-    line.setAttribute('x2', p2.x.toFixed(2));
-    line.setAttribute('y2', p2.y.toFixed(2));
-    line.setAttribute('stroke',         item.color);
-    line.setAttribute('stroke-width',   strokeW);
-    line.setAttribute('stroke-opacity', '0.85');
-    line.setAttribute('stroke-linecap', 'round');
-    if (item.dash && item.dash !== 'none') {
-      line.setAttribute('stroke-dasharray', item.dash);
-    }
-    layer.appendChild(line);
-  });
-}
-
-function replacePlanetSymbolsWithChinese(planetNamesOrdered, symbolScale, pointsColor) {
-  var svgEl = document.querySelector('#paper svg');
-  if (!svgEl) return;
-
-  planetNamesOrdered.forEach(function(name) {
-    var zh = PLANET_CHINESE[name];
-    if (!zh) return;
-
-    var gEl = svgEl.querySelector('#paper-planets-' + name);
-    if (!gEl) { gEl = svgEl.querySelector('[id$="-planets-' + name + '"]'); }
-    if (!gEl) return;
-
-    var cx, cy;
-    try {
-      var bbox = gEl.getBBox();
-      cx = bbox.x + bbox.width  / 2;
-      cy = bbox.y + bbox.height / 2;
-    } catch(e) {
-      var tf = gEl.getAttribute('transform') || '';
-      var m  = tf.match(/translate\(\s*([\d.\-]+)[,\s]+([\d.\-]+)/);
-      cx = m ? parseFloat(m[1]) : 0;
-      cy = m ? parseFloat(m[2]) : 0;
-    }
-
-    while (gEl.firstChild) { gEl.removeChild(gEl.firstChild); }
-
-    var fontSize = Math.max(8, Math.round(13 * symbolScale));
-    var textEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    textEl.setAttribute('x', cx);
-    textEl.setAttribute('y', cy);
-    textEl.setAttribute('text-anchor',       'middle');
-    textEl.setAttribute('dominant-baseline', 'central');
-    textEl.setAttribute('font-size',         fontSize + 'px');
-    textEl.setAttribute('font-weight',       '700');
-    textEl.setAttribute('font-family',       "'Noto Sans TC','Microsoft JhengHei',sans-serif");
-    textEl.setAttribute('fill',              pointsColor || '#f9d56e');
-    textEl.setAttribute('stroke',            'none');
-    textEl.setAttribute('pointer-events',    'none');
-    textEl.textContent = zh;
-    gEl.appendChild(textEl);
-  });
-}
-
-function drawAstroChart(cuspsArr, allLons, chartSize, inclMajor, inclMinor,
-                        planetMode, lineOpp, lineTrine, lineSquare, lineSextile,
-                        dashOpp, dashTrine, dashSquare, dashSextile,
-                        orbOpp, orbTrine, orbSquare, orbSextile) {
-  var sz           = parseInt(chartSize) || 620;
-  var _ps          = document.getElementById('planet-size');
-  var _as          = document.getElementById('aspect-stroke');
-  var symbolScale  = _ps ? parseFloat(_ps.value) || 1.0 : 1.0;
-  var aspectStroke = _as ? parseFloat(_as.value) || 1.0 : 1.0;
-
-  var wrapper = document.getElementById('chart-wrapper');
-  wrapper.innerHTML = '<div id="paper" style="width:' + sz + 'px;height:' + sz + 'px;margin:0 auto;"></div>';
-
-  var planetNamesOrdered = [];
-  var planets = {};
-  var bodyKeys = ['sun','moon','mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto','northNode','lilith'];
-
-  bodyKeys.forEach(function(key){
-    var name = ASTROCHART_PLANET_MAP[key];
-    if (name && allLons[key] != null) {
-      var speed = 1;
-      if (window._lastAstroTime && !{northNode:1,lilith:1}[key]) {
-        try {
-          var dt = 0.1;
-          var l1 = getBodyTropicalLon(key, new Astronomy.AstroTime(window._lastAstroTime.ut - dt));
-          var l2 = getBodyTropicalLon(key, new Astronomy.AstroTime(window._lastAstroTime.ut + dt));
-          var dv = l2 - l1;
-          if (dv > 180) dv -= 360;
-          if (dv < -180) dv += 360;
-          speed = dv < 0 ? -1 : 1;
-        } catch(ex){}
-      }
-      planets[name] = [allLons[key], speed];
-      planetNamesOrdered.push(name);
-    }
-  });
-
-  if (allLons['asc'] != null) { planets['Asc'] = [allLons['asc'], 1]; planetNamesOrdered.push('Asc'); }
-  if (allLons['mc']  != null) { planets['Mc']  = [allLons['mc'],  1]; planetNamesOrdered.push('Mc');  }
-
-  var data = { planets: planets, cusps: cuspsArr };
-
-  var aspectsConfig = {};
-  if (inclMajor) {
-    aspectsConfig['conjunction'] = { degree: 0, orbit: 8, color: 'rgba(200,200,200,0.55)' };
-  }
-  if (inclMinor) {
-    aspectsConfig['quincunx']     = { degree: 150, orbit: 5, color: '#c084fc' };
-    aspectsConfig['semisextile']  = { degree: 30,  orbit: 3, color: '#94a3b8' };
-    aspectsConfig['semisquare']   = { degree: 45,  orbit: 3, color: '#fb923c' };
-    aspectsConfig['sesquisquare'] = { degree: 135, orbit: 3, color: '#fb923c' };
-    aspectsConfig['quintile']     = { degree: 72,  orbit: 2, color: '#67e8f9' };
-    aspectsConfig['biquintile']   = { degree: 144, orbit: 2, color: '#67e8f9' };
-  }
-
-  var pointsColor   = '#f9d56e';
-  var _allLons      = allLons;
-  var _cuspsArr     = cuspsArr;
-  var _chartSize    = chartSize;
-  var _aspectStroke = aspectStroke;
-
-  setTimeout(function() {
-    try {
-      if (typeof astrology === 'undefined' || !astrology.Chart) {
-        throw new Error('astrology.Chart 未定義，請確認 ./src/astrochart.js 路徑正確');
-      }
-
-      var settings = {
-        SYMBOL_SCALE:           symbolScale,
-        POINTS_STROKE:          aspectStroke * 1.8,
-        SIGNS_STROKE:           aspectStroke * 1.5,
-        CIRCLE_STRONG:          aspectStroke * 2,
-        CUSPS_STROKE:           aspectStroke,
-        SYMBOL_AXIS_STROKE:     aspectStroke * 1.6,
-        COLOR_BACKGROUND:       '#16213e',
-        POINTS_COLOR:           pointsColor,
-        SIGNS_COLOR:            '#aad4f5',
-        CIRCLE_COLOR:           '#aad4f5',
-        LINE_COLOR:             '#aad4f5',
-        CUSPS_FONT_COLOR:       '#e8e8f0',
-        SYMBOL_AXIS_FONT_COLOR: '#f9d56e',
-        ASPECTS:                aspectsConfig
-      };
-
-      var chart = new astrology.Chart('paper', sz, sz, settings);
-      var radix = chart.radix(data);
-      radix.aspects();
-
-      requestAnimationFrame(function() {
-        requestAnimationFrame(function() {
-          drawAspectLines(_allLons, _cuspsArr, _chartSize, _aspectStroke,
-                          lineOpp, lineTrine, lineSquare, lineSextile,
-                          dashOpp, dashTrine, dashSquare, dashSextile,
-                          orbOpp, orbTrine, orbSquare, orbSextile);
-          if (planetMode === 'chinese') {
-            replacePlanetSymbolsWithChinese(planetNamesOrdered, symbolScale, pointsColor);
-          }
-        });
-      });
-
-    } catch(e) {
-      document.getElementById('chart-wrapper').innerHTML =
-        '<div class="placeholder">⚠️ 繪圖失敗：' + e.message + '</div>';
-      console.error(e);
-    }
-  }, 50);
-}
-
-document.getElementById('form').addEventListener('submit', function(e) {
-  e.preventDefault();
-
-  var lat         = parseFloat(document.getElementById('latitude').value);
-  var geoLon      = parseFloat(document.getElementById('longitude').value);
-  var dateStr     = document.getElementById('date').value;
-  var timeStr     = document.getElementById('time').value;
-  var lang        = document.getElementById('language-select').value;
-  var zodiac      = document.getElementById('zodiacSystem').value;
-  var houseSystem = document.getElementById('houseSystem').value;
-  var inclMajor   = document.getElementById('aspect-major').checked;
-  var inclMinor   = document.getElementById('aspect-minor').checked;
-  var chartSize   = document.getElementById('chart-size').value;
-  var planetMode  = document.querySelector('input[name="planet-mode"]:checked').value;
-
-  var lineOpp     = document.getElementById('line-opposition').checked;
-  var lineTrine   = document.getElementById('line-trine').checked;
-  var lineSquare  = document.getElementById('line-square').checked;
-  var lineSextile = document.getElementById('line-sextile').checked;
-
-  var dashOpp     = getDashArray('opposition');
-  var dashTrine   = getDashArray('trine');
-  var dashSquare  = getDashArray('square');
-  var dashSextile = getDashArray('sextile');
-
-  var orbOpp     = getOrbValue('orb-opposition');
-  var orbTrine   = getOrbValue('orb-trine');
-  var orbSquare  = getOrbValue('orb-square');
-  var orbSextile = getOrbValue('orb-sextile');
-
-  var orbOverrides = {
-    opposition: orbOpp,
-    trine:      orbTrine,
-    square:     orbSquare,
-    sextile:    orbSextile
-  };
-
-  if (!dateStr || !timeStr) { alert('請填入出生日期與時間'); return; }
-
-  updateAnglesI18n(lang);
-
-  var utcDate   = localToUtcDate(dateStr, timeStr, geoLon);
-  var astroTime = new Astronomy.AstroTime(utcDate);
-  window._lastAstroTime = astroTime;
-
-  var ayanamsa = zodiac === 'sidereal' ? calcDynamicAyanamsa(dateStr, timeStr, geoLon) : 0;
-
-  var ang        = calcAngles(dateStr, timeStr, lat, geoLon);
-  var ascDisplay = toDisplayLon(ang.ascTropical, zodiac, ayanamsa);
-  var mcDisplay  = toDisplayLon(ang.mcTropical,  zodiac, ayanamsa);
-
-  var cusps = calcHouseCusps(ang, lat, houseSystem, zodiac, ayanamsa);
-
-  var bodyKeys  = ['sun','moon','mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto'];
-  var pointKeys = ['northNode','southNode','lilith'];
-  var allLons   = {};
-
-  bodyKeys.forEach(function(key){
-    allLons[key] = toDisplayLon(getBodyTropicalLon(key, astroTime), zodiac, ayanamsa);
-  });
-  pointKeys.forEach(function(key){
-    allLons[key] = toDisplayLon(getBodyTropicalLon(key, astroTime), zodiac, ayanamsa);
-  });
-
-  allLons['asc'] = ascDisplay;
-  allLons['mc']  = mcDisplay;
-
-  var aspects = calcAspects(allLons, inclMajor, inclMinor, orbOverrides);
-
-  document.getElementById('sunsign').textContent =
-    getSignLabel(allLons['sun'], lang) + '  ' + ddToSignDMS(allLons['sun'], lang);
-  document.getElementById('asc-quick').textContent =
-    '上升 ' + ddToSignDMS(ascDisplay, lang);
-
-  document.getElementById('asc-a').textContent = ascDisplay.toFixed(2) + '°';
-  document.getElementById('mc-a').textContent  = mcDisplay.toFixed(2)  + '°';
-  document.getElementById('asc-b').textContent = ascDisplay.toFixed(4);
-  document.getElementById('mc-b').textContent  = mcDisplay.toFixed(4);
-  document.getElementById('asc-c').textContent = ddToSignDMS(ascDisplay, lang);
-  document.getElementById('mc-c').textContent  = ddToSignDMS(mcDisplay,  lang);
-
-  var hTbody = document.getElementById('houses-tbody');
-  hTbody.innerHTML = '';
-
-  var houseRulers = [];
-  try {
-    houseRulers = AstroHouses.getAllHouseRulers(cusps, {
-      rulerMode: 'modern',
-      zodiac:    zodiac,
-      ayanamsa:  ayanamsa || null
-    });
-  } catch(err) {
-    console.warn('getAllHouseRulers 失敗：', err);
-  }
-
-  for (var i = 0; i < 12; i++) {
-    var row = hTbody.insertRow();
-    row.insertCell().textContent = t('house' + (i + 1), lang);
-    row.insertCell().textContent = cusps[i].toFixed(4);
-    row.insertCell().textContent = cusps[(i + 1) % 12].toFixed(4);
-    row.insertCell().textContent = getSignLabel(cusps[i], lang) + ' ' + getSignIngress(cusps[i]);
-    var rulerCell = row.insertCell();
-    rulerCell.className = 'ruler-cell';
-    if (houseRulers[i]) {
-      rulerCell.textContent = RULER_DISPLAY[houseRulers[i].rulerKey] || houseRulers[i].rulerKey;
-    } else {
-      rulerCell.textContent = '—';
-    }
-
-	// 尊貴欄
-	var dignityCell = row.insertCell();
-	if (houseRulers[i]) {
-	  var rulerPlanet = houseRulers[i].rulerKey;          // e.g. 'sun'
-	  var rulerLon    = allLons[rulerPlanet];              // 宮主星目前黃經
-	  if (rulerLon !== null && rulerLon !== undefined) {
-		var rulerSign     = AstroHouses.getZodiacSign({ decimalDegrees: rulerLon, zodiac: zodiac, ayanamsa: zodiac === 'sidereal' ? ayanamsa : null });
-		var rulerSignKey  = rulerSign.key;                 // 宮主星落入的星座 key
-		var rulerHouseNum = getHouseNumber(rulerLon, cusps); // 宮主星落在第幾宮
-		var dignityResult = AstroHouses.getPlanetDignity(rulerPlanet, rulerSignKey, lang);
-		// 顯示格式：入廟 · 獅子座 · 第1宮
-		var houseLabel = lang === 'zh'
-		  ? '第' + rulerHouseNum + '宮'
-		  : 'House ' + rulerHouseNum;
-		var dignityText = (dignityResult.dignityKey === 'peregrine')
-		  ? ''
-		  : dignityResult.dignityLabel + ' ( ' + dignityResult.sign + ' · ' + houseLabel + ' ) ';
-		dignityCell.textContent = dignityText;		// 依尊貴狀態加色彩 class
-		var dKey = dignityResult.dignityKey;
-		if (dKey === 'domicile')    dignityCell.className = 'dignity-domicile';
-		else if (dKey === 'exaltation') dignityCell.className = 'dignity-exaltation';
-		else if (dKey === 'detriment')  dignityCell.className = 'dignity-detriment';
-		else if (dKey === 'fall')       dignityCell.className = 'dignity-fall';
-		else                            dignityCell.className = 'dignity-peregrine';
-	  } else {
-		dignityCell.textContent = '—';
-	  }
-	} else {
-	  dignityCell.textContent = '—';
-	}	
-  }
-
-  var bTbody = document.getElementById('bodies-tbody');
-  bTbody.innerHTML = '';
-  bodyKeys.forEach(function(key){
-    var lon = allLons[key];
-    var row = bTbody.insertRow();
-    var retro = isRetrograde(key, astroTime);
-    row.insertCell().textContent = t(key, lang);
-    row.insertCell().textContent = lon.toFixed(4);
-    row.insertCell().textContent = getSignLabel(lon, lang);
-    row.insertCell().textContent = ddToSignDMS(lon, lang);
-    row.insertCell().textContent = t('house'+getHouseNumber(lon,cusps), lang);
-    var retroCell = row.insertCell();
-    retroCell.textContent = retro ? '逆 R' : '順 D';
-    retroCell.className   = retro ? 'retro' : 'direct';
-  });
-
-  var pTbody = document.getElementById('points-tbody');
-  pTbody.innerHTML = '';
-  pointKeys.forEach(function(key){
-    var lon = allLons[key];
-    var row = pTbody.insertRow();
-    row.insertCell().textContent = t(key, lang);
-    row.insertCell().textContent = lon.toFixed(4);
-    row.insertCell().textContent = getSignLabel(lon, lang);
-    row.insertCell().textContent = ddToSignDMS(lon, lang);
-    row.insertCell().textContent = t('house'+getHouseNumber(lon,cusps), lang);
-  });
-
-  var ASPECT_ANGLE_MAP = {
-    conjunction:0, sextile:60, square:90, trine:120, opposition:180,
-    quincunx:150, semisextile:30, semisquare:45, sesquisquare:135,
-    quintile:72, biquintile:144
-  };
-
-function _dailyMotion(bodyKey, astroTime) {
-    // 平均每日速度常數（度/日）
-    var AVG_MOTION = {
-      sun:       0.9856,
-      moon:     13.1760,
-      mercury:   1.3833,
-      venus:     1.2000,
-      mars:      0.5240,
-      jupiter:   0.0831,
-      saturn:    0.0335,
-      uranus:    0.0117,
-      neptune:   0.0060,
-      pluto:     0.0040,
-      northNode:-0.0529,
-      southNode: 0.0529,
-      lilith:    0.1108,
-      asc:     0,
-      mc:      0
-    };
-
-    var base = AVG_MOTION[bodyKey];
-    if (base === undefined) return 0;
-
-    // 用 isRetrograde() 決定逆行方向
-    var _noRetro = {sun:1,moon:1,northNode:1,southNode:1,lilith:1,asc:1,mc:1};
-    if (base !== 0 && !_noRetro[bodyKey] && astroTime && typeof isRetrograde === 'function') {
-      try {
-        if (isRetrograde(bodyKey, astroTime)) {
-          base = -Math.abs(base);
-        }
-      } catch(e) {}
-    }
-
-    return base;
-  }
-
-	function _applyingText(asp, allLons, astroTime) {
-		if (typeof AspectDirection === 'undefined') return '';
-		var angle = ASPECT_ANGLE_MAP[asp.aspect];
-		if (angle === undefined) return '';
-		if (allLons[asp.body1] == null || allLons[asp.body1] === undefined) return '';
-		if (allLons[asp.body2] == null || allLons[asp.body2] === undefined) return '';
-
-		try {
-		  var isAscMc1 = (asp.body1 === 'asc' || asp.body1 === 'mc');
-		  var isAscMc2 = (asp.body2 === 'asc' || asp.body2 === 'mc');
-
-		  if (isAscMc1 || isAscMc2) {
-			// 涉及 ASC/MC：以 ASC/MC 為快速移動主體判斷
-			var ascmcLon  = isAscMc2 ? allLons[asp.body2] : allLons[asp.body1];
-			var planetLon = isAscMc2 ? allLons[asp.body1] : allLons[asp.body2];
-			// 找最近的精確相位目標點（planet ± angle）
-			var t1 = planetLon - angle;
-			var t2 = planetLon + angle;
-			var arc1 = (((t1 - ascmcLon) % 360) + 360) % 360; if (arc1 > 180) arc1 -= 360;
-			var arc2 = (((t2 - ascmcLon) % 360) + 360) % 360; if (arc2 > 180) arc2 -= 360;
-			var nearestArc = (Math.abs(arc1) <= Math.abs(arc2)) ? arc1 : arc2;
-			// ASC/MC 順行（度數增加），nearestArc > 0 = 目標在前方 = 入相
-			return nearestArc > 0 ? '入相' : '出相';
-		  } else {
-			// 普通行星對行星：用速度差判斷
-			var dm1 = _dailyMotion(asp.body1, astroTime);
-			var dm2 = _dailyMotion(asp.body2, astroTime);
-			var res = AspectDirection.calculate(
-			  { longitude: allLons[asp.body1], dailyMotion: dm1 },
-			  { longitude: allLons[asp.body2], dailyMotion: dm2 },
-			  angle, { orbLimit: 12 }
-			);
-			return res ? (res.directionZH || '') : '';
-		  }
-		} catch(e) { return ''; }
-  }
-
-  var aTbody = document.getElementById('aspects-tbody');
-  aTbody.innerHTML = '';
-  aspects.forEach(function(asp){
-    var row = aTbody.insertRow();
-    row.insertCell().textContent = t(asp.body1, lang);
-    var aspCell = row.insertCell();
-    aspCell.textContent = asp.symbol + ' ' + t(asp.aspect, lang);
-    aspCell.className   = 'aspect-' + asp.level;
-    row.insertCell().textContent = t(asp.body2, lang);
-    row.insertCell().textContent = asp.orb + '°';
-    row.insertCell().textContent = _applyingText(asp, allLons, window.lastAstroTime);
-    row.insertCell().textContent = asp.level==='major' ? '主要' : '次要';
-  });
-
-  drawAstroChart(cusps, allLons, chartSize, inclMajor, inclMinor,
-                 planetMode, lineOpp, lineTrine, lineSquare, lineSextile,
-                 dashOpp, dashTrine, dashSquare, dashSextile,
-                 orbOpp, orbTrine, orbSquare, orbSextile);
-
-  buildAspectMatrix(allLons, inclMajor, inclMinor, orbOverrides);
-  document.getElementById('aspect-matrix-card').style.display = 'block';
-  
-  document.getElementById('output-area').style.display = 'block';
-});
-</script>
-
-<script>
-// ── 覆寫 getSymbol，將星座符號改為中文文字 ──────────────
 (function () {
-  const SIGN_ZH = {
-    "Aries":       "牡羊",
-    "Taurus":      "金牛",
-    "Gemini":      "雙子",
-    "Cancer":      "巨蟹",
-    "Leo":         "獅子",
-    "Virgo":       "處女",
-    "Libra":       "天秤",
-    "Scorpio":     "天蠍",
-    "Sagittarius": "射手",
-    "Capricorn":   "摩羯",
-    "Aquarius":    "水瓶",
-    "Pisces":      "雙魚"
+  'use strict';
+
+  /* ════════════════════════════════════════════════════════
+     常數
+  ════════════════════════════════════════════════════════ */
+  var ASP_SYM = {
+    'Conjunction(0°)' : '☌', 'Opposition(180°)': '☍',
+    'Square(90°)'     : '□', 'Trine(120°)'     : '△',
+    'Sextile(60°)'    : '⚹', 'None'            : '—'
+  };
+  var SIGN_ZH = {
+    Aries:'牡羊', Taurus:'金牛', Gemini:'雙子',   Cancer:'巨蟹',
+    Leo:'獅子',   Virgo:'處女',  Libra:'天秤',    Scorpio:'天蠍',
+    Sagittarius:'射手', Capricorn:'摩羯', Aquarius:'水瓶', Pisces:'雙魚'
+  };
+  var PLANET_ZH = {
+    Sun:'太陽', Moon:'月亮', Mercury:'水星', Venus:'金星',
+    Mars:'火星', Jupiter:'木星', Saturn:'土星',
+    Uranus:'天王星', Neptune:'海王星', Pluto:'冥王星'
   };
 
-  const SIGNS = new Set(Object.keys(SIGN_ZH));
-  const _orig = astrology.SVG.prototype.getSymbol;
+  /* ════════════════════════════════════════════════════════
+     ★ 時區工具
+     根據經度計算整數時區偏移（小時）
+     例：121.51° → round(121.51/15) = 8 → UTC+8
+  ════════════════════════════════════════════════════════ */
+  var getTzOffset = function () {
+    var lon = parseFloat(document.getElementById('longitude').value);
+    if (isNaN(lon)) { return 0; }
+    return Math.round(lon / 15);
+  };
 
-  astrology.SVG.prototype.getSymbol = function (name, x, y) {
-    if (SIGNS.has(name)) {
-      // 建立 SVG <g> 包住 <text>，與原本回傳格式一致
-      const ns = "http://www.w3.org/2000/svg";
-      const g = document.createElementNS(ns, "g");
-      const txt = document.createElementNS(ns, "text");
-      const scale = astrology.SYMBOL_SCALE || 1;
+  /* 格式化時區標籤，例：+8 → "UTC+8"，-5 → "UTC-5" */
+  var fmtTzLabel = function (offsetH) {
+    if (offsetH === 0) { return 'UTC'; }
+    return 'UTC' + (offsetH > 0 ? '+' : '') + offsetH;
+  };
 
-      txt.setAttribute("x", x);
-      txt.setAttribute("y", y);
-      txt.setAttribute("text-anchor", "middle");
-      txt.setAttribute("dominant-baseline", "central");
-      txt.setAttribute("font-size", 12 * scale);
-      txt.setAttribute("fill", "#FFD700");
-      txt.setAttribute("font-family", "'Noto Sans TC', 'Segoe UI', sans-serif");
-      txt.setAttribute("font-weight", "bold");
-      txt.textContent = SIGN_ZH[name];
-      g.appendChild(txt);
-      return g;
+  /* ════════════════════════════════════════════════════════
+     工具
+  ════════════════════════════════════════════════════════ */
+  var pad = function (n) { return String(n).padStart(2, '0'); };
+
+  var fmtLocal = function (d) {
+    if (!d || isNaN(d)) { return '—'; }
+    return d.getFullYear() + '/' + pad(d.getMonth()+1) + '/' + pad(d.getDate())
+         + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  };
+
+  /* ★ 新增：將 UTC Date 加上時區偏移後格式化顯示 */
+  var fmtWithTz = function (d, offsetH) {
+    if (!d || isNaN(d)) { return '—'; }
+    /* 加上時區偏移（毫秒） */
+    var shifted = new Date(d.getTime() + offsetH * 3600000);
+    return shifted.getUTCFullYear() + '/'
+         + pad(shifted.getUTCMonth()+1) + '/'
+         + pad(shifted.getUTCDate())
+         + ' ' + pad(shifted.getUTCHours()) + ':' + pad(shifted.getUTCMinutes());
+  };
+
+  var fmtDur = function (a, b) {
+    if (!a || !b || isNaN(a) || isNaN(b) || b <= a) { return '—'; }
+    var m = Math.round((b - a) / 60000);
+    var h = Math.floor(m / 60);
+    return (h ? h + 'h ' : '') + (m % 60) + 'm';
+  };
+
+  var mkTd = function (tr, text, cls) {
+    var td = document.createElement('td');
+    td.textContent = (text === null || text === undefined) ? '—' : String(text);
+    if (cls) { td.className = cls; }
+    tr.appendChild(td);
+    return td;
+  };
+
+  /* ════════════════════════════════════════════════════════
+     讀取表單
+  ════════════════════════════════════════════════════════ */
+  var getLocalDate = function () {
+    var y   = parseInt(document.getElementById('date-year').value,   10);
+    var mo  = parseInt(document.getElementById('date-month').value,  10);
+    var d   = parseInt(document.getElementById('date-day').value,    10);
+    var h   = parseInt(document.getElementById('time-hour').value,   10);
+    var min = parseInt(document.getElementById('time-minute').value, 10);
+    if (!y || !mo || !d || isNaN(h) || isNaN(min)) { return null; }
+    return new Date(y, mo - 1, d, h, min, 0, 0);
+  };
+
+  /* ★ 修正：getUtcEquiv 根據經度換算真正的 UTC
+     輸入時間為當地時間，減去時區偏移 = UTC */
+  var getUtcEquiv = function () {
+    var y   = parseInt(document.getElementById('date-year').value,   10);
+    var mo  = parseInt(document.getElementById('date-month').value,  10);
+    var d   = parseInt(document.getElementById('date-day').value,    10);
+    var h   = parseInt(document.getElementById('time-hour').value,   10);
+    var min = parseInt(document.getElementById('time-minute').value, 10);
+    if (!y || !mo || !d || isNaN(h) || isNaN(min)) { return null; }
+    var offsetH = getTzOffset();
+    /* 先建立「當地時間等效的 UTC 時間物件」，再減去時區偏移 */
+    var localAsUtc = new Date(Date.UTC(y, mo - 1, d, h, min, 0, 0));
+    return new Date(localAsUtc.getTime() - offsetH * 3600000);
+  };
+
+  var isReady = function () {
+    var h   = document.getElementById('time-hour').value;
+    var min = document.getElementById('time-minute').value;
+    return !!(
+      document.getElementById('date-year').value  &&
+      document.getElementById('date-month').value &&
+      document.getElementById('date-day').value   &&
+      h !== '' && min !== ''
+    );
+  };
+
+  /* ════════════════════════════════════════════════════════
+     格式轉換層
+  ════════════════════════════════════════════════════════ */
+  var convertVocList = function (rawList, inputUtcDate) {
+    if (!rawList || !rawList.length) { return []; }
+    var teInput = MoonVOC.dateToJD(inputUtcDate);
+    return rawList.map(function (v) {
+      return {
+        vocStart      : MoonVOC.jdToDate(v.tvoc),
+        vocEnd        : MoonVOC.jdToDate(v.tingr),
+        ingressSign   : MoonVOC.SIGN_NAMES[v.isign_ingr] || null,
+        lastAspect    : {
+          aspName   : MoonVOC.ASP_NAMES[v.casp]   || 'None',
+          planetName: MoonVOC.PLANET_NAMES[v.cpl] || null
+        },
+        isActiveAtInput: (v.tvoc <= teInput && teInput <= v.tingr)
+      };
+    });
+  };
+
+  /* ════════════════════════════════════════════════════════
+     UI 狀態
+  ════════════════════════════════════════════════════════ */
+  var showLoading = function () {
+    document.getElementById('voc-section').style.display    = 'block';
+    document.getElementById('voc-loading').style.display    = 'block';
+    document.getElementById('voc-empty').style.display      = 'none';
+    document.getElementById('voc-table-wrap').style.display = 'none';
+  };
+
+  /* ════════════════════════════════════════════════════════
+     渲染表格
+  ════════════════════════════════════════════════════════ */
+  var renderVoc = function (vocList, localStart, offsetH) {
+    var elLoading = document.getElementById('voc-loading');
+    var elEmpty   = document.getElementById('voc-empty');
+    var elWrap    = document.getElementById('voc-table-wrap');
+    var elTbody   = document.getElementById('voc-tbody');
+    var elBadge   = document.getElementById('voc-range-badge');
+    var elTzBadge = document.getElementById('voc-tz-badge');
+
+    elLoading.style.display = 'none';
+
+    /* ★ 更新時區標籤 */
+    elTzBadge.textContent = fmtTzLabel(offsetH);
+
+    /* ★ 更新欄位標題，加入時區資訊 */
+    var tzLabel = fmtTzLabel(offsetH);
+    document.getElementById('th-voc-start').textContent = '空亡開始（' + tzLabel + '）';
+    document.getElementById('th-voc-end').textContent   = '空亡結束（' + tzLabel + '）';
+
+    /* range badge 使用當地時間顯示 */
+    elBadge.textContent = fmtLocal(localStart) + ' ～ '
+                        + fmtLocal(new Date(localStart.getTime() + 3 * 86400000));
+
+    if (!vocList || vocList.length === 0) {
+      elEmpty.style.display = 'block';
+      elWrap.style.display  = 'none';
+      return;
     }
-    // 其他符號（行星等）維持原本邏輯
-    return _orig.call(this, name, x, y);
+
+    elEmpty.style.display = 'none';
+    elWrap.style.display  = 'block';
+    elTbody.innerHTML     = '';
+
+    vocList.forEach(function (v, idx) {
+      var tr = document.createElement('tr');
+      if (v.isActiveAtInput) { tr.classList.add('voc-row-active'); }
+
+      mkTd(tr, idx + 1);
+
+      /* ★ 空亡開始：UTC → 當地時間 */
+      mkTd(tr, fmtWithTz(v.vocStart, offsetH), 'voc-time');
+
+      /* 觸發相位 */
+      var aspName = (v.lastAspect && v.lastAspect.aspName) ? v.lastAspect.aspName : 'None';
+      var tdA = document.createElement('td');
+      tdA.innerHTML = '<span class="voc-asp-sym">' + (ASP_SYM[aspName] || '?') + '</span>'
+                    + '<span style="font-size:0.78rem;color:var(--color-muted);">' + aspName + '</span>';
+      tr.appendChild(tdA);
+
+      /* 月亮 ↔ 行星 */
+      var tdP = document.createElement('td');
+      if (v.lastAspect && v.lastAspect.planetName) {
+        var pn = v.lastAspect.planetName;
+        tdP.innerHTML = '<span class="voc-moon">月亮</span> ↔ '
+                      + '<span class="voc-planet">' + (PLANET_ZH[pn] || pn) + '</span>';
+      } else { tdP.textContent = '—'; }
+      tr.appendChild(tdP);
+
+      /* ★ 空亡結束：UTC → 當地時間 */
+      mkTd(tr, fmtWithTz(v.vocEnd, offsetH), 'voc-time');
+
+      /* 入座星座 */
+      var tdSg = document.createElement('td');
+      tdSg.className = 'voc-sign';
+      tdSg.textContent = v.ingressSign
+        ? (SIGN_ZH[v.ingressSign] || v.ingressSign) + ' (' + v.ingressSign + ')'
+        : '—';
+      tr.appendChild(tdSg);
+
+      mkTd(tr, fmtDur(v.vocStart, v.vocEnd), 'voc-dur');
+
+      /* 狀態 */
+      var tdSt = document.createElement('td');
+      tdSt.innerHTML = v.isActiveAtInput
+        ? '<span class="voc-active">🔴 空亡中</span>'
+        : '<span class="voc-ended">✅ 已結束</span>';
+      tr.appendChild(tdSt);
+
+      elTbody.appendChild(tr);
+    });
   };
-})();
+
+  /* ════════════════════════════════════════════════════════
+     主計算
+  ════════════════════════════════════════════════════════ */
+  var calcAndRender = function () {
+    if (typeof MoonVOC === 'undefined' || typeof MoonVOC.calcAllVoc !== 'function') {
+      console.warn('[VOC] moon_voc.js 未載入');
+      return;
+    }
+    var localStart = getLocalDate();
+    var utcEquiv   = getUtcEquiv();
+    if (!localStart || !utcEquiv) { return; }
+
+    var offsetH = getTzOffset(); /* ★ 取得時區偏移 */
+
+    showLoading();
+
+    setTimeout(function () {
+      try {
+        var rawList = MoonVOC.calcAllVoc(utcEquiv, 3);
+        var vocList = convertVocList(rawList, utcEquiv);
+        renderVoc(vocList, localStart, offsetH); /* ★ 傳入 offsetH */
+      } catch (err) {
+        console.error('[VOC] 計算失敗：', err);
+        document.getElementById('voc-loading').style.display = 'none';
+        var el = document.getElementById('voc-empty');
+        el.style.display = 'block';
+        el.textContent   = '⚠️ 計算失敗：' + err.message;
+      }
+    }, 60);
+  };
+
+  /* ════════════════════════════════════════════════════════
+     防抖 & 事件綁定
+  ════════════════════════════════════════════════════════ */
+  var _timer = null;
+  var debouncedCalc = function () {
+    clearTimeout(_timer);
+    _timer = setTimeout(calcAndRender, 300);
+  };
+
+  var initVoc = function () {
+    var form = document.getElementById('form');
+    if (!form) { return; }
+    form.addEventListener('submit', function () { calcAndRender(); });
+    var ids = ['date-year', 'date-month', 'date-day', 'time-hour', 'time-minute', 'longitude'];
+    ids.forEach(function (id) {
+      var el = document.getElementById(id);
+      if (!el) { return; }
+      el.addEventListener('input', function () {
+        if (isReady()) { debouncedCalc(); }
+      });
+    });
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initVoc);
+  } else {
+    initVoc();
+  }
+
+}());
 </script>
 
 </body>
