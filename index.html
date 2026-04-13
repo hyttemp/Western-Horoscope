@@ -16,7 +16,10 @@
   <script src="./utility.js"></script>
   <script src="./utility1.js"></script>
   <script src="./src/moon_voc.js"></script>
-
+<!-- ★ 新增：中點函式庫 + 初始化模組 -->
+	<script src="./src/midpoint.js"></script>
+	<script src="./src/midpoint-init.js"></script>
+	
   <style>
     :root {
       --color-bg:      #0f0f1a;
@@ -224,6 +227,61 @@
     .voc-ended   { color: var(--color-muted); }
     .voc-row-active { background: rgba(255,138,138,0.08) !important; }
     .voc-row-active:hover { background: rgba(255,138,138,0.14) !important; }
+	/* ── ★ 中點區塊樣式（獨立命名，不覆蓋既有 class） ── */
+#midpoint-section {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  display: none;
+}
+.mp-head {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--color-border);
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.mp-head h3 { margin: 0; border: none; padding: 0; flex: 1; }
+.mp-orb-wrap {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 0.78rem; color: var(--color-muted);
+}
+.mp-orb-wrap label { margin: 0; font-size: 0.78rem; color: var(--color-muted); }
+#mp-orb-input {
+  width: 52px !important; padding: 3px 6px !important;
+  font-size: 0.78rem !important; text-align: center;
+}
+#mp-recalc-btn {
+  padding: 3px 10px; font-size: 0.75rem;
+  background: rgba(170,212,255,0.12); color: var(--color-accent);
+  border: 1px solid var(--color-border); border-radius: 4px;
+  cursor: pointer; transition: background 0.12s;
+}
+#mp-recalc-btn:hover { background: rgba(170,212,255,0.22); }
+#midpoint-empty {
+  padding: 20px; text-align: center;
+  color: var(--color-muted); font-size: 0.85rem; display: none;
+}
+#midpoint-table-wrap { overflow-x: auto; display: none; }
+#midpoint-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+#midpoint-table thead th {
+  background: rgba(170,212,255,0.06); color: var(--color-accent); font-weight: 600;
+  padding: 6px 8px; text-align: left;
+  border-bottom: 1px solid var(--color-border); white-space: nowrap;
+}
+#midpoint-table tbody tr:nth-child(even) { background: rgba(255,255,255,0.02); }
+#midpoint-table tbody tr:hover           { background: rgba(170,212,255,0.06); }
+#midpoint-table td {
+  padding: 5px 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  white-space: nowrap;
+}
+.mp-pair     { color: var(--color-accent); font-weight: 600; }
+.mp-deg      { font-variant-numeric: tabular-nums; color: var(--color-text); }
+.mp-sign     { color: #7ec98f; font-weight: 600; }
+.mp-planet   { color: var(--color-gold); }
+.mp-asp-name { color: #c084fc; font-weight: 600; }
+.mp-orb-val  { color: var(--color-muted); font-size: 0.78rem; }
+
   </style>
 </head>
 <body>
@@ -526,6 +584,35 @@
           </table>
         </div>
       </div>
+
+      <!-- ★ 中點區塊：移至天體點下方、相位上方 -->
+      <div id="midpoint-section">
+        <div class="mp-head">
+          <h3>✦ 中點 Midpoints</h3>
+          <div class="mp-orb-wrap">
+            <label for="mp-orb-input">容許度</label>
+            <input id="mp-orb-input" type="number" min="0.1" max="5" step="0.1" value="1.5">
+            <span>°</span>
+            <button id="mp-recalc-btn" type="button">重新計算</button>
+          </div>
+        </div>
+        <div id="midpoint-empty">此星盤無符合容許度的中點相位</div>
+        <div id="midpoint-table-wrap">
+          <table id="midpoint-table">
+            <thead>
+              <tr>
+                <th>中點組合</th>
+                <th>中點位置</th>
+                <th>星座</th>
+                <th>容許度</th>
+                <th>同軸行星</th>
+              </tr>
+            </thead>
+            <tbody id="midpoint-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
       <div class="table-card">
         <div class="table-card-head"><h3>相位 Aspects</h3></div>
         <div class="table-scroll">
@@ -541,10 +628,6 @@
 </div>
 
 <script>
-// ================================================================
-// ★ 修正 1：頁面載入時自動填入當前日期時間
-//   用瀏覽器本地時間填入欄位（顯示用），不影響 spin 按鈕邏輯
-// ================================================================
 (function initDefaultDateTime() {
   var now = new Date();
   document.getElementById('date-year').value   = now.getFullYear();
@@ -554,12 +637,6 @@
   document.getElementById('time-minute').value = now.getMinutes();
 }());
 
-// ================================================================
-// ★ 修正 2：VOC 模組（與原版 index2-v.html 邏輯相同，
-//   只修正 getUtcEquiv 使用 Date.UTC 避免瀏覽器時區污染，
-//   以及 fmtLocal/badge 顯示改用 UTC 方法確保跨時區正確）
-//   ⚠️ 完全不碰 spin 按鈕，由 utility1.js 負責
-// ================================================================
 (function () {
   'use strict';
 
@@ -592,7 +669,6 @@
 
   var pad = function (n) { return String(n).padStart(2, '0'); };
 
-  // ★ 修正：改用 UTC 方法 + 手動偏移，避免瀏覽器時區干擾顯示
   var fmtWithTz = function (d, offsetH) {
     if (!d || isNaN(d)) { return '—'; }
     var shifted = new Date(d.getTime() + offsetH * 3600000);
@@ -617,7 +693,6 @@
     return td;
   };
 
-  // ★ 修正：用 Date.UTC 建立，不受瀏覽器時區影響
   var getUtcEquiv = function () {
     var y   = parseInt(document.getElementById('date-year').value,   10);
     var mo  = parseInt(document.getElementById('date-month').value,  10);
@@ -630,7 +705,6 @@
     return new Date(localAsUtc.getTime() - offsetH * 3600000);
   };
 
-  // badge 顯示用：把輸入的當地時間直接格式化（不做時區換算）
   var fmtInputLocal = function () {
     var y   = parseInt(document.getElementById('date-year').value,   10);
     var mo  = parseInt(document.getElementById('date-month').value,  10);
@@ -691,7 +765,6 @@
     document.getElementById('th-voc-start').textContent = '空亡開始（' + tzLabel + '）';
     document.getElementById('th-voc-end').textContent   = '空亡結束（' + tzLabel + '）';
 
-    // badge：直接顯示使用者輸入的當地時間字串，不做任何時區換算
     var startStr = fmtInputLocal();
     elBadge.textContent = startStr + ' 起 3 天';
 
