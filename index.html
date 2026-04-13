@@ -350,7 +350,7 @@
 
       <div class="form-group">
         <label>星盤尺寸 (px)</label>
-        <input id="chart-size" type="number" min="400" max="900" step="50" value="600">
+        <input id="chart-size" type="number" min="400" max="900" step="10" value="550">
       </div>
 
       <div class="row2">
@@ -446,11 +446,16 @@
       </div>
     </div>
 
+    <!-- ★ 星盤圖形移到月亮空亡上面 -->
+    <div id="chart-patterns-container">
+      <div class="table-card-head"><h3>星盤圖形 Chart Patterns</h3></div>
+      <div id="chart-patterns-list"></div>
+    </div>
+
     <div id="voc-section">
       <div class="voc-head">
         <h3>🌙 月亮空亡 Void of Course</h3>
         <span class="voc-range-badge" id="voc-range-badge">指定時間起 3 天</span>
-        <!-- ★ 新增：時區標示 -->
         <span class="voc-tz-badge" id="voc-tz-badge">UTC+0</span>
       </div>
       <div id="voc-loading">⏳ 計算中…</div>
@@ -460,7 +465,6 @@
           <thead>
             <tr>
               <th>#</th>
-              <!-- ★ 欄位標題改為當地時間，移除 (UT) -->
               <th id="th-voc-start">空亡開始（當地）</th>
               <th>觸發相位</th>
               <th>月亮 ↔ 行星</th>
@@ -473,11 +477,6 @@
           <tbody id="voc-tbody"></tbody>
         </table>
       </div>
-    </div>
-
-    <div id="chart-patterns-container">
-      <div class="table-card-head"><h3>星盤圖形 Chart Patterns</h3></div>
-      <div id="chart-patterns-list"></div>
     </div>
 
     <div id="output-area">
@@ -546,9 +545,6 @@
 (function () {
   'use strict';
 
-  /* ════════════════════════════════════════════════════════
-     常數
-  ════════════════════════════════════════════════════════ */
   var ASP_SYM = {
     'Conjunction(0°)' : '☌', 'Opposition(180°)': '☍',
     'Square(90°)'     : '□', 'Trine(120°)'     : '△',
@@ -565,26 +561,17 @@
     Uranus:'天王星', Neptune:'海王星', Pluto:'冥王星'
   };
 
-  /* ════════════════════════════════════════════════════════
-     ★ 時區工具
-     根據經度計算整數時區偏移（小時）
-     例：121.51° → round(121.51/15) = 8 → UTC+8
-  ════════════════════════════════════════════════════════ */
   var getTzOffset = function () {
     var lon = parseFloat(document.getElementById('longitude').value);
     if (isNaN(lon)) { return 0; }
     return Math.round(lon / 15);
   };
 
-  /* 格式化時區標籤，例：+8 → "UTC+8"，-5 → "UTC-5" */
   var fmtTzLabel = function (offsetH) {
     if (offsetH === 0) { return 'UTC'; }
     return 'UTC' + (offsetH > 0 ? '+' : '') + offsetH;
   };
 
-  /* ════════════════════════════════════════════════════════
-     工具
-  ════════════════════════════════════════════════════════ */
   var pad = function (n) { return String(n).padStart(2, '0'); };
 
   var fmtLocal = function (d) {
@@ -593,10 +580,8 @@
          + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
   };
 
-  /* ★ 新增：將 UTC Date 加上時區偏移後格式化顯示 */
   var fmtWithTz = function (d, offsetH) {
     if (!d || isNaN(d)) { return '—'; }
-    /* 加上時區偏移（毫秒） */
     var shifted = new Date(d.getTime() + offsetH * 3600000);
     return shifted.getUTCFullYear() + '/'
          + pad(shifted.getUTCMonth()+1) + '/'
@@ -619,9 +604,6 @@
     return td;
   };
 
-  /* ════════════════════════════════════════════════════════
-     讀取表單
-  ════════════════════════════════════════════════════════ */
   var getLocalDate = function () {
     var y   = parseInt(document.getElementById('date-year').value,   10);
     var mo  = parseInt(document.getElementById('date-month').value,  10);
@@ -632,8 +614,6 @@
     return new Date(y, mo - 1, d, h, min, 0, 0);
   };
 
-  /* ★ 修正：getUtcEquiv 根據經度換算真正的 UTC
-     輸入時間為當地時間，減去時區偏移 = UTC */
   var getUtcEquiv = function () {
     var y   = parseInt(document.getElementById('date-year').value,   10);
     var mo  = parseInt(document.getElementById('date-month').value,  10);
@@ -642,7 +622,6 @@
     var min = parseInt(document.getElementById('time-minute').value, 10);
     if (!y || !mo || !d || isNaN(h) || isNaN(min)) { return null; }
     var offsetH = getTzOffset();
-    /* 先建立「當地時間等效的 UTC 時間物件」，再減去時區偏移 */
     var localAsUtc = new Date(Date.UTC(y, mo - 1, d, h, min, 0, 0));
     return new Date(localAsUtc.getTime() - offsetH * 3600000);
   };
@@ -658,9 +637,6 @@
     );
   };
 
-  /* ════════════════════════════════════════════════════════
-     格式轉換層
-  ════════════════════════════════════════════════════════ */
   var convertVocList = function (rawList, inputUtcDate) {
     if (!rawList || !rawList.length) { return []; }
     var teInput = MoonVOC.dateToJD(inputUtcDate);
@@ -678,9 +654,6 @@
     });
   };
 
-  /* ════════════════════════════════════════════════════════
-     UI 狀態
-  ════════════════════════════════════════════════════════ */
   var showLoading = function () {
     document.getElementById('voc-section').style.display    = 'block';
     document.getElementById('voc-loading').style.display    = 'block';
@@ -688,9 +661,6 @@
     document.getElementById('voc-table-wrap').style.display = 'none';
   };
 
-  /* ════════════════════════════════════════════════════════
-     渲染表格
-  ════════════════════════════════════════════════════════ */
   var renderVoc = function (vocList, localStart, offsetH) {
     var elLoading = document.getElementById('voc-loading');
     var elEmpty   = document.getElementById('voc-empty');
@@ -701,15 +671,12 @@
 
     elLoading.style.display = 'none';
 
-    /* ★ 更新時區標籤 */
     elTzBadge.textContent = fmtTzLabel(offsetH);
 
-    /* ★ 更新欄位標題，加入時區資訊 */
     var tzLabel = fmtTzLabel(offsetH);
     document.getElementById('th-voc-start').textContent = '空亡開始（' + tzLabel + '）';
     document.getElementById('th-voc-end').textContent   = '空亡結束（' + tzLabel + '）';
 
-    /* range badge 使用當地時間顯示 */
     elBadge.textContent = fmtLocal(localStart) + ' ～ '
                         + fmtLocal(new Date(localStart.getTime() + 3 * 86400000));
 
@@ -728,18 +695,14 @@
       if (v.isActiveAtInput) { tr.classList.add('voc-row-active'); }
 
       mkTd(tr, idx + 1);
-
-      /* ★ 空亡開始：UTC → 當地時間 */
       mkTd(tr, fmtWithTz(v.vocStart, offsetH), 'voc-time');
 
-      /* 觸發相位 */
       var aspName = (v.lastAspect && v.lastAspect.aspName) ? v.lastAspect.aspName : 'None';
       var tdA = document.createElement('td');
       tdA.innerHTML = '<span class="voc-asp-sym">' + (ASP_SYM[aspName] || '?') + '</span>'
                     + '<span style="font-size:0.78rem;color:var(--color-muted);">' + aspName + '</span>';
       tr.appendChild(tdA);
 
-      /* 月亮 ↔ 行星 */
       var tdP = document.createElement('td');
       if (v.lastAspect && v.lastAspect.planetName) {
         var pn = v.lastAspect.planetName;
@@ -748,10 +711,8 @@
       } else { tdP.textContent = '—'; }
       tr.appendChild(tdP);
 
-      /* ★ 空亡結束：UTC → 當地時間 */
       mkTd(tr, fmtWithTz(v.vocEnd, offsetH), 'voc-time');
 
-      /* 入座星座 */
       var tdSg = document.createElement('td');
       tdSg.className = 'voc-sign';
       tdSg.textContent = v.ingressSign
@@ -761,7 +722,6 @@
 
       mkTd(tr, fmtDur(v.vocStart, v.vocEnd), 'voc-dur');
 
-      /* 狀態 */
       var tdSt = document.createElement('td');
       tdSt.innerHTML = v.isActiveAtInput
         ? '<span class="voc-active">🔴 空亡中</span>'
@@ -772,9 +732,6 @@
     });
   };
 
-  /* ════════════════════════════════════════════════════════
-     主計算
-  ════════════════════════════════════════════════════════ */
   var calcAndRender = function () {
     if (typeof MoonVOC === 'undefined' || typeof MoonVOC.calcAllVoc !== 'function') {
       console.warn('[VOC] moon_voc.js 未載入');
@@ -784,7 +741,7 @@
     var utcEquiv   = getUtcEquiv();
     if (!localStart || !utcEquiv) { return; }
 
-    var offsetH = getTzOffset(); /* ★ 取得時區偏移 */
+    var offsetH = getTzOffset();
 
     showLoading();
 
@@ -792,7 +749,7 @@
       try {
         var rawList = MoonVOC.calcAllVoc(utcEquiv, 3);
         var vocList = convertVocList(rawList, utcEquiv);
-        renderVoc(vocList, localStart, offsetH); /* ★ 傳入 offsetH */
+        renderVoc(vocList, localStart, offsetH);
       } catch (err) {
         console.error('[VOC] 計算失敗：', err);
         document.getElementById('voc-loading').style.display = 'none';
@@ -803,9 +760,6 @@
     }, 60);
   };
 
-  /* ════════════════════════════════════════════════════════
-     防抖 & 事件綁定
-  ════════════════════════════════════════════════════════ */
   var _timer = null;
   var debouncedCalc = function () {
     clearTimeout(_timer);
