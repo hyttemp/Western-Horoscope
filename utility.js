@@ -715,52 +715,54 @@
     return found;
   }
 
-  // ── 圖形偵測結果渲染 ─────────────────────────────────────────────
+// ── 圖形偵測結果渲染 ─────────────────────────────────────────────
 
-  function renderChartPatterns(patterns) {
-    var container = document.getElementById('chart-patterns-container');
-    if (!container) return;
+function renderChartPatterns(patterns) {
+  var container = document.getElementById('chart-patterns-container');
+  if (!container) return;
 
-    if (!patterns || patterns.length === 0) {
-      container.style.display = 'none';
-      return;
-    }
-
-    container.style.display = 'block';
-    var list = document.getElementById('chart-patterns-list');
-    if (!list) return;
-    list.innerHTML = '';
-
-    patterns.forEach(function(p) {
-      var item = document.createElement('div');
-      item.className = 'pattern-item';
-      item.style.borderLeftColor = p.color;
-
-      var header = document.createElement('div');
-      header.className = 'pattern-header';
-
-      var sym = document.createElement('span');
-      sym.className = 'pattern-symbol';
-      sym.style.color = p.color;
-      sym.textContent = p.symbol;
-
-      var lbl = document.createElement('span');
-      lbl.className = 'pattern-label';
-      lbl.style.color = p.color;
-      lbl.textContent = p.label;
-
-      header.appendChild(sym);
-      header.appendChild(lbl);
-
-      var desc = document.createElement('div');
-      desc.className = 'pattern-desc';
-      desc.textContent = p.description;
-
-      item.appendChild(header);
-      item.appendChild(desc);
-      list.appendChild(item);
-    });
+  if (!patterns || patterns.length === 0) {
+    container.style.display = 'none';
+    return;
   }
+
+  container.style.display = 'block';
+
+  // 雙欄：分別取得左右 tbody
+  var tbodyLeft  = document.getElementById('chart-patterns-tbody-left');
+  var tbodyRight = document.getElementById('chart-patterns-tbody-right');
+  if (!tbodyLeft || !tbodyRight) return;
+
+  tbodyLeft.innerHTML  = '';
+  tbodyRight.innerHTML = '';
+
+  patterns.forEach(function(p, idx) {
+    var tr = document.createElement('tr');
+
+    // 欄1：圖形（符號 + 名稱）
+    var td1 = document.createElement('td');
+    td1.innerHTML =
+      '<span class="pt-symbol" style="color:' + p.color + '">' + p.symbol + '</span> ' +
+      '<span class="pt-label"  style="color:' + p.color + '">' + p.label  + '</span>';
+
+    // 欄2：內容描述
+    var td2 = document.createElement('td');
+    td2.className   = 'pt-desc';
+    td2.textContent = p.description;
+
+    tr.appendChild(td1);
+    tr.appendChild(td2);
+
+    // 奇數筆（0,2,4…）→ 左欄；偶數筆（1,3,5…）→ 右欄
+    if (idx % 2 === 0) {
+      tbodyLeft.appendChild(tr);
+    } else {
+      tbodyRight.appendChild(tr);
+    }
+  });
+}
+
+
 
   // ── 星盤繪製 ─────────────────────────────────────────────────────
 
@@ -853,6 +855,8 @@
             if (planetMode === 'chinese') {
               replacePlanetSymbolsWithChinese(planetNamesOrdered, symbolScale, pointsColor);
             }
+			// 通知 midpoint-init.js 可以開始讀取資料
+			document.dispatchEvent(new CustomEvent('chartReady'));			
           });
         });
 

@@ -2,7 +2,6 @@
 <html lang="zh-Hant" dir="ltr">
 <head>
   <meta charset="utf-8">
-  
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>西洋占星星盤</title>
   <style>
@@ -84,13 +83,6 @@
       align-items: center; padding: 12px; min-height: 200px;
     }
     #paper svg { max-width: 100%; height: auto; }
-    #sunsign-card {
-      display: flex; align-items: center; gap: 10px; padding: 10px 14px;
-      background: var(--color-card); border: 1px solid var(--color-border); border-radius: var(--radius);
-    }
-    #sunsign-label { font-size: 0.75rem; color: var(--color-muted); }
-    #sunsign { font-size: 1.15rem; font-weight: 700; color: var(--color-gold); }
-    #asc-quick { font-size: 0.85rem; color: var(--color-accent); margin-left: auto; }
     .table-card { background: var(--color-card); border: 1px solid var(--color-border); border-radius: var(--radius); overflow: hidden; }
     .table-card-head { padding: 8px 12px; border-bottom: 1px solid var(--color-border); }
     .table-scroll { overflow-x: auto; }
@@ -158,22 +150,73 @@
     .dignity-detriment  { color: #ff8a8a; font-weight: 600; }
     .dignity-fall       { color: #fb923c; font-weight: 600; }
     .dignity-peregrine  { color: #8888aa; }
+
+    /* ═══════════════════════════════════════════
+       星盤圖形 — 雙欄版（僅改此區塊）
+       ═══════════════════════════════════════════ */
     #chart-patterns-container {
-      display: none; background: var(--color-card);
-      border: 1px solid var(--color-border); border-radius: var(--radius); overflow: hidden;
+      display: none;
+      background: var(--color-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      overflow: hidden;
     }
-    #chart-patterns-container .table-card-head { padding: 8px 12px; border-bottom: 1px solid var(--color-border); }
-    #chart-patterns-list { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 12px; }
-    .pattern-item {
-      background: rgba(255,255,255,0.04); border: 1px solid var(--color-border);
-      border-left: 3px solid #aad4f5; border-radius: 6px;
-      padding: 8px 12px; min-width: 200px; flex: 1 1 200px;
+    #chart-patterns-container .table-card-head {
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--color-border);
     }
-    .pattern-header { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
-    .pattern-symbol { font-size: 1.1rem; line-height: 1; }
-    .pattern-label  { font-size: 0.88rem; font-weight: 700; }
-    .pattern-desc   { font-size: 0.78rem; color: var(--color-muted); line-height: 1.4; }
-    .pattern-none   { font-size: 0.82rem; color: var(--color-muted); padding: 6px 2px; }
+    #chart-patterns-container h3 {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    /* 雙欄包裝器 */
+    #chart-patterns-list {
+      padding: 0;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+    }
+
+    /* 每一欄 */
+    .cp-col {
+      min-width: 0;
+      overflow: hidden;
+    }
+    /* 右欄加左邊框分隔線 */
+    .cp-col:nth-child(2) {
+      border-left: 1px solid var(--color-border);
+    }
+
+    /* 共用表格樣式（與原版一致） */
+    .cp-col table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+    }
+    .cp-col thead th {
+      background: rgba(170,212,255,0.06);
+      color: var(--color-accent);
+      font-weight: 600;
+      padding: 6px 8px;
+      text-align: center;
+      border-bottom: 1px solid var(--color-border);
+      white-space: nowrap;
+    }
+    .cp-col tbody tr:nth-child(even) { background: rgba(255,255,255,0.02); }
+    .cp-col tbody tr:hover            { background: rgba(170,212,255,0.06); }
+    .cp-col td {
+      padding: 5px 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      white-space: nowrap;
+    }
+    .cp-col .pt-symbol { font-size: 1.05rem; font-weight: 700; }
+    .cp-col .pt-label  { font-weight: 700; }
+    .cp-col .pt-desc   { color: var(--color-muted); font-size: 0.78rem; }
+    .pattern-none { font-size: 0.82rem; color: var(--color-muted); padding: 6px 8px; }
+
+    /* ═══════════════════════════════════════════ */
+
     #voc-section {
       background: var(--color-card); border: 1px solid var(--color-border);
       border-radius: var(--radius); overflow: hidden; display: none;
@@ -299,9 +342,8 @@
             <div class="spin-wrap">
               <input id="date-year" type="number" min="1900" max="2100" placeholder="年">
               <div class="spin-btn-col">
-               <button type="button" class="spin-btn spin-btn-up" data-target="date-year" data-step="1" data-min="1900" data-max="2100">▲</button>
-				<button type="button" class="spin-btn spin-btn-dn" data-target="date-year" data-step="-1" data-min="1900" data-max="2100">▼</button>
-
+                <button type="button" class="spin-btn spin-btn-up" data-target="date-year" data-step="1" data-min="1900" data-max="2100">▲</button>
+                <button type="button" class="spin-btn spin-btn-dn" data-target="date-year" data-step="-1" data-min="1900" data-max="2100">▼</button>
               </div>
             </div>
           </div>
@@ -318,7 +360,6 @@
           <div>
             <label style="font-size:0.72rem;color:var(--color-muted);margin-bottom:2px;">日</label>
             <div class="spin-wrap">
-              <!-- [修正4] 移除 data-max="31"，utility1.js 動態計算當月天數，硬編碼無效且易誤導 -->
               <input id="date-day" type="number" min="1" max="31" placeholder="日">
               <div class="spin-btn-col">
                 <button type="button" class="spin-btn spin-btn-up" data-target="date-day" data-step="1" data-min="1">▲</button>
@@ -354,10 +395,8 @@
           </div>
         </div>
       </div>
-	  
-		<button type="submit">✦ 繪製星盤</button>
-		
- 
+
+      <button type="submit">✦ 繪製星盤</button>
 
       <div class="row2">
         <div class="form-group">
@@ -381,7 +420,7 @@
         </div>
       </div>
 
-     <div class="form-group">
+      <div class="form-group">
         <label>語言</label>
         <select id="language-select">
           <option value="zh" selected>中文</option>
@@ -389,7 +428,7 @@
           <option value="es">Español</option>
         </select>
       </div>
-	  
+
       <div class="form-group">
         <label>相位等級</label>
         <div class="checkbox-row">
@@ -404,7 +443,6 @@
       </div>
 
       <div class="row2">
-        <!-- [修正3] 移除 oninput 內聯事件，改由 utility1.js initFormEvents() 統一處理 -->
         <div class="form-group">
           <label>行星符號大小 <span id="planet-size-val">1</span>x</label>
           <input id="planet-size" type="range" min="0.5" max="4" step="0.1" value="1"
@@ -477,7 +515,6 @@
         </div>
       </div>
 
-      
     </form>
   </div>
 
@@ -496,17 +533,34 @@
       </div>
     </div>
 
+    <!-- ★ 星盤圖形：雙欄版 ★ -->
     <div id="chart-patterns-container">
       <div class="table-card-head"><h3>星盤圖形 Chart Patterns</h3></div>
-      <div id="chart-patterns-list"></div>
-    </div>
+      <div id="chart-patterns-list">
 
-    <!-- [修正2] 恢復 sunsign-card 顯示卡片 -->
-    <div id="sunsign-card" style="display:none;">
-      <span id="sunsign-label">☀️ 太陽星座</span>
-      <span id="sunsign"></span>
-      <span id="asc-quick"></span>
+        <!-- 左欄 -->
+        <div class="cp-col">
+          <table>
+            <thead>
+              <tr><th>圖形</th><th>內容</th></tr>
+            </thead>
+            <tbody id="chart-patterns-tbody-left"></tbody>
+          </table>
+        </div>
+
+        <!-- 右欄 -->
+        <div class="cp-col">
+          <table>
+            <thead>
+              <tr><th>圖形</th><th>內容</th></tr>
+            </thead>
+            <tbody id="chart-patterns-tbody-right"></tbody>
+          </table>
+        </div>
+
+      </div>
     </div>
+    <!-- ★ end 星盤圖形 ★ -->
 
     <div id="voc-section">
       <div class="voc-head">
@@ -537,7 +591,6 @@
 
     <div id="output-area">
 
-      <!-- 宮位 -->
       <div class="table-card">
         <div class="table-card-head"><h3>宮位 Houses</h3></div>
         <div class="table-scroll">
@@ -548,18 +601,16 @@
         </div>
       </div>
 
-      <!-- 行星位置 -->
       <div class="table-card">
         <div class="table-card-head"><h3>行星位置 Planets</h3></div>
         <div class="table-scroll">
-          <table>
+          <table id="bodies-table">
             <thead><tr><th>天體</th><th>黃道°</th><th>度分秒</th><th>宮位</th><th>順/逆</th></tr></thead>
             <tbody id="bodies-tbody"></tbody>
           </table>
         </div>
       </div>
 
-      <!-- 天體點 -->
       <div class="table-card">
         <div class="table-card-head"><h3>天體點 Points</h3></div>
         <div class="table-scroll">
@@ -570,7 +621,6 @@
         </div>
       </div>
 
-      <!-- 中點 -->
       <div id="midpoint-section">
         <div class="mp-head">
           <h3>✦ 中點 Midpoints</h3>
@@ -586,11 +636,7 @@
           <table id="midpoint-table">
             <thead>
               <tr>
-                <th>中點組合</th>
-                <th>中點位置</th>
-                <th>星座</th>
-                <th>容許度</th>
-                <th>同軸行星</th>
+                <th>中點組合</th><th>中點位置</th><th>星座</th><th>容許度</th><th>同軸行星</th>
               </tr>
             </thead>
             <tbody id="midpoint-tbody"></tbody>
@@ -598,7 +644,6 @@
         </div>
       </div>
 
-      <!-- 相位 -->
       <div class="table-card">
         <div class="table-card-head"><h3>相位 Aspects</h3></div>
         <div class="table-scroll">
@@ -614,10 +659,6 @@
   </div><!-- /.right-col -->
 </div><!-- /.layout -->
 
-<!-- ═══════════════════════════════════════════════════════
-     [修正1] 所有 <script> 移到 </body> 前，確保 DOM 完全就緒
-     載入順序：依賴庫 → utility.js → 功能模組 → utility1.js（最後）
-     ═══════════════════════════════════════════════════════ -->
 <script src="./src/astrochart.js"></script>
 <script src="./src/astronomy_math.js"></script>
 <script src="./src/ephemeris-utilities.js"></script>

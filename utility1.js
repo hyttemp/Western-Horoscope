@@ -71,9 +71,9 @@
     EL.lineTrine        = get('line-trine');
     EL.lineSquare       = get('line-square');
     EL.lineSextile      = get('line-sextile');
-    EL.sunsign          = get('sunsign');
-    EL.sunsignCard      = get('sunsign-card');
-    EL.ascQuick         = get('asc-quick');
+    //EL.sunsign          = get('sunsign');
+    //EL.sunsignCard      = get('sunsign-card');
+    //EL.ascQuick         = get('asc-quick');
     EL.housesTbody      = get('houses-tbody');
     EL.bodiesTbody      = get('bodies-tbody');
     EL.pointsTbody      = get('points-tbody');
@@ -187,13 +187,7 @@
     allLons['mc']  = mcDisplay;
 
     var aspects = AstroUtil.calcAspects(allLons, inclMajor, inclMinor, orbOverrides);
-
-    // ── 太陽星座 & 上升快覽 ──
-    EL.sunsign.textContent  =
-      AstroUtil.getSignLabel(allLons['sun'], lang) + '  ' +
-      AstroUtil.ddToSignDMS(allLons['sun'], lang);
-    EL.ascQuick.textContent = '上升 ' + AstroUtil.ddToSignDMS(ascDisplay, lang);
-    if (EL.sunsignCard) { EL.sunsignCard.style.display = 'flex'; }
+ 
 
     // ── 宮位表 ──
     EL.housesTbody.innerHTML = '';
