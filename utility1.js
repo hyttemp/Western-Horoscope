@@ -71,16 +71,12 @@
     EL.lineTrine        = get('line-trine');
     EL.lineSquare       = get('line-square');
     EL.lineSextile      = get('line-sextile');
-    //EL.sunsign          = get('sunsign');
-    //EL.sunsignCard      = get('sunsign-card');
-    //EL.ascQuick         = get('asc-quick');
     EL.housesTbody      = get('houses-tbody');
     EL.bodiesTbody      = get('bodies-tbody');
     EL.pointsTbody      = get('points-tbody');
     EL.aspectsTbody     = get('aspects-tbody');
     EL.aspectMatrixCard = get('aspect-matrix-card');
     EL.outputArea       = get('output-area');
-    // [新增] range 滑桿與顯示值
     EL.planetSize       = get('planet-size');
     EL.planetSizeVal    = get('planet-size-val');
     EL.aspectStroke     = get('aspect-stroke');
@@ -130,6 +126,13 @@
     var dateStr = getDateStr();
     var timeStr = getTimeStr();
     if (!dateStr || !timeStr) { return; }
+
+    // [Guard] 確保必要 DOM 元素存在，避免 null 報錯
+    if (!EL.housesTbody || !EL.bodiesTbody || !EL.pointsTbody ||
+        !EL.aspectsTbody || !EL.aspectMatrixCard || !EL.outputArea) {
+      console.error('[utility1] runChart: 必要 DOM 元素未找到，請確認 HTML 結構');
+      return;
+    }
 
     var lat         = parseFloat(EL.latitude.value);
     var geoLon      = parseFloat(EL.longitude.value);
@@ -187,7 +190,6 @@
     allLons['mc']  = mcDisplay;
 
     var aspects = AstroUtil.calcAspects(allLons, inclMajor, inclMinor, orbOverrides);
- 
 
     // ── 宮位表 ──
     EL.housesTbody.innerHTML = '';
@@ -319,6 +321,9 @@
     AstroUtil.buildAspectMatrix(allLons, inclMajor, inclMinor, orbOverrides);
     EL.aspectMatrixCard.style.display = 'block';
     EL.outputArea.style.display       = 'block';
+
+    // ★ [Fix] 通知 midpoint-init.js 所有資料已寫入 DOM，可以開始計算中點
+    document.dispatchEvent(new CustomEvent('chartReady'));
   }
 
   // ─────────────────────────────────────────────────────────────
@@ -424,13 +429,11 @@
     var form = document.getElementById('form');
     if (!form) { console.error('[utility1] 找不到 #form'); return; }
 
-    // 提交
     form.addEventListener('submit', function(e) {
       e.preventDefault();
       runChart();
     });
 
-    // 日期時間欄位即時更新
     DATETIME_IDS.forEach(function(id) {
       var el = document.getElementById(id);
       if (!el) { return; }
@@ -439,14 +442,12 @@
       });
     });
 
-    // [修正3] planet-size 滑桿 → 更新顯示值（原 oninput 內聯）
     if (EL.planetSize && EL.planetSizeVal) {
       EL.planetSize.addEventListener('input', function() {
         EL.planetSizeVal.textContent = this.value;
       });
     }
 
-    // [修正3] aspect-stroke 滑桿 → 更新顯示值（原 oninput 內聯）
     if (EL.aspectStroke && EL.aspectStrokeVal) {
       EL.aspectStroke.addEventListener('input', function() {
         EL.aspectStrokeVal.textContent = this.value;
