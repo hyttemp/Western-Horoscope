@@ -4,22 +4,6 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>西洋占星星盤</title>
-
-  <script src="./src/astrochart.js"></script>
-  <script src="./src/astronomy_math.js"></script>
-  <script src="./src/ephemeris-utilities.js"></script>
-  <script src="./src/language.js"></script>
-  <script src="./src/astronomy.browser.js"></script>
-  <script src="./src/astro-houses.js"></script>
-  <script src="./src/astro-angles.js"></script>
-  <script src="./src/Aspect-Applying.js"></script>
-  <script src="./utility.js"></script>
-  <script src="./utility1.js"></script>
-  <script src="./src/moon_voc.js"></script>
-<!-- ★ 新增：中點函式庫 + 初始化模組 -->
-	<script src="./src/midpoint.js"></script>
-	<script src="./src/midpoint-init.js"></script>
-	
   <style>
     :root {
       --color-bg:      #0f0f1a;
@@ -105,6 +89,7 @@
     }
     #sunsign-label { font-size: 0.75rem; color: var(--color-muted); }
     #sunsign { font-size: 1.15rem; font-weight: 700; color: var(--color-gold); }
+    #asc-quick { font-size: 0.85rem; color: var(--color-accent); margin-left: auto; }
     .table-card { background: var(--color-card); border: 1px solid var(--color-border); border-radius: var(--radius); overflow: hidden; }
     .table-card-head { padding: 8px 12px; border-bottom: 1px solid var(--color-border); }
     .table-scroll { overflow-x: auto; }
@@ -113,6 +98,7 @@
       background: rgba(170,212,255,0.06); color: var(--color-accent); font-weight: 600;
       padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--color-border); white-space: nowrap;
     }
+    tbody th { text-align: left; padding: 5px 8px; }
     tbody tr:nth-child(even) { background: rgba(255,255,255,0.02); }
     tbody tr:hover { background: rgba(170,212,255,0.06); }
     td { padding: 5px 8px; border-bottom: 1px solid rgba(255,255,255,0.04); white-space: nowrap; }
@@ -227,61 +213,59 @@
     .voc-ended   { color: var(--color-muted); }
     .voc-row-active { background: rgba(255,138,138,0.08) !important; }
     .voc-row-active:hover { background: rgba(255,138,138,0.14) !important; }
-	/* ── ★ 中點區塊樣式（獨立命名，不覆蓋既有 class） ── */
-#midpoint-section {
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  overflow: hidden;
-  display: none;
-}
-.mp-head {
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--color-border);
-  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-}
-.mp-head h3 { margin: 0; border: none; padding: 0; flex: 1; }
-.mp-orb-wrap {
-  display: flex; align-items: center; gap: 6px;
-  font-size: 0.78rem; color: var(--color-muted);
-}
-.mp-orb-wrap label { margin: 0; font-size: 0.78rem; color: var(--color-muted); }
-#mp-orb-input {
-  width: 52px !important; padding: 3px 6px !important;
-  font-size: 0.78rem !important; text-align: center;
-}
-#mp-recalc-btn {
-  padding: 3px 10px; font-size: 0.75rem;
-  background: rgba(170,212,255,0.12); color: var(--color-accent);
-  border: 1px solid var(--color-border); border-radius: 4px;
-  cursor: pointer; transition: background 0.12s;
-}
-#mp-recalc-btn:hover { background: rgba(170,212,255,0.22); }
-#midpoint-empty {
-  padding: 20px; text-align: center;
-  color: var(--color-muted); font-size: 0.85rem; display: none;
-}
-#midpoint-table-wrap { overflow-x: auto; display: none; }
-#midpoint-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
-#midpoint-table thead th {
-  background: rgba(170,212,255,0.06); color: var(--color-accent); font-weight: 600;
-  padding: 6px 8px; text-align: left;
-  border-bottom: 1px solid var(--color-border); white-space: nowrap;
-}
-#midpoint-table tbody tr:nth-child(even) { background: rgba(255,255,255,0.02); }
-#midpoint-table tbody tr:hover           { background: rgba(170,212,255,0.06); }
-#midpoint-table td {
-  padding: 5px 8px;
-  border-bottom: 1px solid rgba(255,255,255,0.04);
-  white-space: nowrap;
-}
-.mp-pair     { color: var(--color-accent); font-weight: 600; }
-.mp-deg      { font-variant-numeric: tabular-nums; color: var(--color-text); }
-.mp-sign     { color: #7ec98f; font-weight: 600; }
-.mp-planet   { color: var(--color-gold); }
-.mp-asp-name { color: #c084fc; font-weight: 600; }
-.mp-orb-val  { color: var(--color-muted); font-size: 0.78rem; }
-
+    #midpoint-section {
+      background: var(--color-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      display: none;
+    }
+    .mp-head {
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--color-border);
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    }
+    .mp-head h3 { margin: 0; border: none; padding: 0; flex: 1; }
+    .mp-orb-wrap {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 0.78rem; color: var(--color-muted);
+    }
+    .mp-orb-wrap label { margin: 0; font-size: 0.78rem; color: var(--color-muted); }
+    #mp-orb-input {
+      width: 52px !important; padding: 3px 6px !important;
+      font-size: 0.78rem !important; text-align: center;
+    }
+    #mp-recalc-btn {
+      padding: 3px 10px; font-size: 0.75rem;
+      background: rgba(170,212,255,0.12); color: var(--color-accent);
+      border: 1px solid var(--color-border); border-radius: 4px;
+      cursor: pointer; transition: background 0.12s;
+    }
+    #mp-recalc-btn:hover { background: rgba(170,212,255,0.22); }
+    #midpoint-empty {
+      padding: 20px; text-align: center;
+      color: var(--color-muted); font-size: 0.85rem; display: none;
+    }
+    #midpoint-table-wrap { overflow-x: auto; display: none; }
+    #midpoint-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    #midpoint-table thead th {
+      background: rgba(170,212,255,0.06); color: var(--color-accent); font-weight: 600;
+      padding: 6px 8px; text-align: left;
+      border-bottom: 1px solid var(--color-border); white-space: nowrap;
+    }
+    #midpoint-table tbody tr:nth-child(even) { background: rgba(255,255,255,0.02); }
+    #midpoint-table tbody tr:hover           { background: rgba(170,212,255,0.06); }
+    #midpoint-table td {
+      padding: 5px 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      white-space: nowrap;
+    }
+    .mp-pair     { color: var(--color-accent); font-weight: 600; }
+    .mp-deg      { font-variant-numeric: tabular-nums; color: var(--color-text); }
+    .mp-sign     { color: #7ec98f; font-weight: 600; }
+    .mp-planet   { color: var(--color-gold); }
+    .mp-asp-name { color: #c084fc; font-weight: 600; }
+    .mp-orb-val  { color: var(--color-muted); font-size: 0.78rem; }
   </style>
 </head>
 <body>
@@ -291,6 +275,7 @@
 
 <div class="layout">
 
+  <!-- 左欄：表單 -->
   <div class="panel">
     <form id="form">
 
@@ -311,10 +296,11 @@
           <div>
             <label style="font-size:0.72rem;color:var(--color-muted);margin-bottom:2px;">年</label>
             <div class="spin-wrap">
-              <input id="date-year" type="number" min="1" max="9999" placeholder="年">
+              <input id="date-year" type="number" min="1900" max="2100" placeholder="年">
               <div class="spin-btn-col">
-                <button type="button" class="spin-btn spin-btn-up" data-target="date-year" data-step="1">▲</button>
-                <button type="button" class="spin-btn spin-btn-dn" data-target="date-year" data-step="-1">▼</button>
+               <button type="button" class="spin-btn spin-btn-up" data-target="date-year" data-step="1" data-min="1900" data-max="2100">▲</button>
+				<button type="button" class="spin-btn spin-btn-dn" data-target="date-year" data-step="-1" data-min="1900" data-max="2100">▼</button>
+
               </div>
             </div>
           </div>
@@ -331,10 +317,11 @@
           <div>
             <label style="font-size:0.72rem;color:var(--color-muted);margin-bottom:2px;">日</label>
             <div class="spin-wrap">
+              <!-- [修正4] 移除 data-max="31"，utility1.js 動態計算當月天數，硬編碼無效且易誤導 -->
               <input id="date-day" type="number" min="1" max="31" placeholder="日">
               <div class="spin-btn-col">
-                <button type="button" class="spin-btn spin-btn-up" data-target="date-day" data-step="1" data-min="1" data-max="31">▲</button>
-                <button type="button" class="spin-btn spin-btn-dn" data-target="date-day" data-step="-1" data-min="1" data-max="31">▼</button>
+                <button type="button" class="spin-btn spin-btn-up" data-target="date-day" data-step="1" data-min="1">▲</button>
+                <button type="button" class="spin-btn spin-btn-dn" data-target="date-day" data-step="-1" data-min="1">▼</button>
               </div>
             </div>
           </div>
@@ -366,7 +353,9 @@
           </div>
         </div>
       </div>
-
+	  
+		<button type="submit">✦ 繪製星盤</button>
+		
       <div class="form-group">
         <label>語言</label>
         <select id="language-select">
@@ -412,16 +401,15 @@
       </div>
 
       <div class="row2">
+        <!-- [修正3] 移除 oninput 內聯事件，改由 utility1.js initFormEvents() 統一處理 -->
         <div class="form-group">
           <label>行星符號大小 <span id="planet-size-val">1</span>x</label>
           <input id="planet-size" type="range" min="0.5" max="4" step="0.1" value="1"
-            oninput="document.getElementById('planet-size-val').textContent=this.value"
             style="width:100%;accent-color:var(--color-accent)">
         </div>
         <div class="form-group">
           <label>相位線粗細 <span id="aspect-stroke-val">1</span>px</label>
           <input id="aspect-stroke" type="range" min="0.5" max="5" step="0.5" value="1"
-            oninput="document.getElementById('aspect-stroke-val').textContent=this.value"
             style="width:100%;accent-color:var(--color-accent)">
         </div>
       </div>
@@ -486,10 +474,11 @@
         </div>
       </div>
 
-      <button type="submit">✦ 繪製星盤</button>
+      
     </form>
   </div>
 
+  <!-- 右欄：輸出 -->
   <div class="right-col">
 
     <div class="chart-and-matrix">
@@ -507,6 +496,13 @@
     <div id="chart-patterns-container">
       <div class="table-card-head"><h3>星盤圖形 Chart Patterns</h3></div>
       <div id="chart-patterns-list"></div>
+    </div>
+
+    <!-- [修正2] 恢復 sunsign-card 顯示卡片 -->
+    <div id="sunsign-card" style="display:none;">
+      <span id="sunsign-label">☀️ 太陽星座</span>
+      <span id="sunsign"></span>
+      <span id="asc-quick"></span>
     </div>
 
     <div id="voc-section">
@@ -537,26 +533,8 @@
     </div>
 
     <div id="output-area">
-      <div id="sunsign-card">
-        <div>
-          <div id="sunsign-label">太陽星座 Sun Sign</div>
-          <div id="sunsign"></div>
-        </div>
-        <div style="margin-left:auto; font-size:0.78rem; color:var(--color-muted);" id="asc-quick"></div>
-      </div>
-      <div class="table-card">
-        <div class="table-card-head"><h3 id="h-angles">天文角點 Angles</h3></div>
-        <div class="table-scroll">
-          <table>
-            <thead><tr><th></th><th id="th-asc">上升 Asc</th><th id="th-mc">天頂 MC</th></tr></thead>
-            <tbody>
-              <tr><td id="th-hd">地平度數</td><td id="asc-a"></td><td id="mc-a"></td></tr>
-              <tr><td id="th-ed">黃道度數</td><td id="asc-b"></td><td id="mc-b"></td></tr>
-              <tr><td id="th-dms">星座度分秒</td><td id="asc-c"></td><td id="mc-c"></td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
+
+      <!-- 宮位 -->
       <div class="table-card">
         <div class="table-card-head"><h3>宮位 Houses</h3></div>
         <div class="table-scroll">
@@ -566,26 +544,30 @@
           </table>
         </div>
       </div>
+
+      <!-- 行星位置 -->
       <div class="table-card">
         <div class="table-card-head"><h3>行星位置 Planets</h3></div>
         <div class="table-scroll">
           <table>
-            <thead><tr><th>天體</th><th>黃道°</th><th>星座</th><th>度分秒</th><th>宮位</th><th>順/逆</th></tr></thead>
+            <thead><tr><th>天體</th><th>黃道°</th><th>度分秒</th><th>宮位</th><th>順/逆</th></tr></thead>
             <tbody id="bodies-tbody"></tbody>
           </table>
         </div>
       </div>
+
+      <!-- 天體點 -->
       <div class="table-card">
         <div class="table-card-head"><h3>天體點 Points</h3></div>
         <div class="table-scroll">
           <table>
-            <thead><tr><th>點</th><th>黃道°</th><th>星座</th><th>度分秒</th><th>宮位</th></tr></thead>
+            <thead><tr><th>點</th><th>黃道°</th><th>度分秒</th><th>宮位</th></tr></thead>
             <tbody id="points-tbody"></tbody>
           </table>
         </div>
       </div>
 
-      <!-- ★ 中點區塊：移至天體點下方、相位上方 -->
+      <!-- 中點 -->
       <div id="midpoint-section">
         <div class="mp-head">
           <h3>✦ 中點 Midpoints</h3>
@@ -613,6 +595,7 @@
         </div>
       </div>
 
+      <!-- 相位 -->
       <div class="table-card">
         <div class="table-card-head"><h3>相位 Aspects</h3></div>
         <div class="table-scroll">
@@ -622,258 +605,29 @@
           </table>
         </div>
       </div>
-    </div>
 
-  </div>
-</div>
+    </div><!-- /#output-area -->
 
-<script>
-(function initDefaultDateTime() {
-  var now = new Date();
-  document.getElementById('date-year').value   = now.getFullYear();
-  document.getElementById('date-month').value  = now.getMonth() + 1;
-  document.getElementById('date-day').value    = now.getDate();
-  document.getElementById('time-hour').value   = now.getHours();
-  document.getElementById('time-minute').value = now.getMinutes();
-}());
+  </div><!-- /.right-col -->
+</div><!-- /.layout -->
 
-(function () {
-  'use strict';
-
-  var ASP_SYM = {
-    'Conjunction(0°)' : '☌', 'Opposition(180°)': '☍',
-    'Square(90°)'     : '□', 'Trine(120°)'     : '△',
-    'Sextile(60°)'    : '⚹', 'None'            : '—'
-  };
-  var SIGN_ZH = {
-    Aries:'牡羊', Taurus:'金牛', Gemini:'雙子',   Cancer:'巨蟹',
-    Leo:'獅子',   Virgo:'處女',  Libra:'天秤',    Scorpio:'天蠍',
-    Sagittarius:'射手', Capricorn:'摩羯', Aquarius:'水瓶', Pisces:'雙魚'
-  };
-  var PLANET_ZH = {
-    Sun:'太陽', Moon:'月亮', Mercury:'水星', Venus:'金星',
-    Mars:'火星', Jupiter:'木星', Saturn:'土星',
-    Uranus:'天王星', Neptune:'海王星', Pluto:'冥王星'
-  };
-
-  var getTzOffset = function () {
-    var lon = parseFloat(document.getElementById('longitude').value);
-    if (isNaN(lon)) { return 0; }
-    return Math.round(lon / 15);
-  };
-
-  var fmtTzLabel = function (offsetH) {
-    if (offsetH === 0) { return 'UTC'; }
-    return 'UTC' + (offsetH > 0 ? '+' : '') + offsetH;
-  };
-
-  var pad = function (n) { return String(n).padStart(2, '0'); };
-
-  var fmtWithTz = function (d, offsetH) {
-    if (!d || isNaN(d)) { return '—'; }
-    var shifted = new Date(d.getTime() + offsetH * 3600000);
-    return shifted.getUTCFullYear() + '/'
-         + pad(shifted.getUTCMonth() + 1) + '/'
-         + pad(shifted.getUTCDate())
-         + ' ' + pad(shifted.getUTCHours()) + ':' + pad(shifted.getUTCMinutes());
-  };
-
-  var fmtDur = function (a, b) {
-    if (!a || !b || isNaN(a) || isNaN(b) || b <= a) { return '—'; }
-    var m = Math.round((b - a) / 60000);
-    var h = Math.floor(m / 60);
-    return (h ? h + 'h ' : '') + (m % 60) + 'm';
-  };
-
-  var mkTd = function (tr, text, cls) {
-    var td = document.createElement('td');
-    td.textContent = (text === null || text === undefined) ? '—' : String(text);
-    if (cls) { td.className = cls; }
-    tr.appendChild(td);
-    return td;
-  };
-
-  var getUtcEquiv = function () {
-    var y   = parseInt(document.getElementById('date-year').value,   10);
-    var mo  = parseInt(document.getElementById('date-month').value,  10);
-    var d   = parseInt(document.getElementById('date-day').value,    10);
-    var h   = parseInt(document.getElementById('time-hour').value,   10);
-    var min = parseInt(document.getElementById('time-minute').value, 10);
-    if (!y || !mo || !d || isNaN(h) || isNaN(min)) { return null; }
-    var offsetH    = getTzOffset();
-    var localAsUtc = new Date(Date.UTC(y, mo - 1, d, h, min, 0, 0));
-    return new Date(localAsUtc.getTime() - offsetH * 3600000);
-  };
-
-  var fmtInputLocal = function () {
-    var y   = parseInt(document.getElementById('date-year').value,   10);
-    var mo  = parseInt(document.getElementById('date-month').value,  10);
-    var d   = parseInt(document.getElementById('date-day').value,    10);
-    var h   = parseInt(document.getElementById('time-hour').value,   10);
-    var min = parseInt(document.getElementById('time-minute').value, 10);
-    if (!y || !mo || !d || isNaN(h) || isNaN(min)) { return '—'; }
-    return y + '/' + pad(mo) + '/' + pad(d) + ' ' + pad(h) + ':' + pad(min);
-  };
-
-  var isReady = function () {
-    var h   = document.getElementById('time-hour').value;
-    var min = document.getElementById('time-minute').value;
-    return !!(
-      document.getElementById('date-year').value  &&
-      document.getElementById('date-month').value &&
-      document.getElementById('date-day').value   &&
-      h !== '' && min !== ''
-    );
-  };
-
-  var convertVocList = function (rawList, inputUtcDate) {
-    if (!rawList || !rawList.length) { return []; }
-    var teInput = MoonVOC.dateToJD(inputUtcDate);
-    return rawList.map(function (v) {
-      return {
-        vocStart      : MoonVOC.jdToDate(v.tvoc),
-        vocEnd        : MoonVOC.jdToDate(v.tingr),
-        ingressSign   : MoonVOC.SIGN_NAMES[v.isign_ingr] || null,
-        lastAspect    : {
-          aspName   : MoonVOC.ASP_NAMES[v.casp]   || 'None',
-          planetName: MoonVOC.PLANET_NAMES[v.cpl] || null
-        },
-        isActiveAtInput: (v.tvoc <= teInput && teInput <= v.tingr)
-      };
-    });
-  };
-
-  var showLoading = function () {
-    document.getElementById('voc-section').style.display    = 'block';
-    document.getElementById('voc-loading').style.display    = 'block';
-    document.getElementById('voc-empty').style.display      = 'none';
-    document.getElementById('voc-table-wrap').style.display = 'none';
-  };
-
-  var renderVoc = function (vocList, offsetH) {
-    var elLoading = document.getElementById('voc-loading');
-    var elEmpty   = document.getElementById('voc-empty');
-    var elWrap    = document.getElementById('voc-table-wrap');
-    var elTbody   = document.getElementById('voc-tbody');
-    var elBadge   = document.getElementById('voc-range-badge');
-    var elTzBadge = document.getElementById('voc-tz-badge');
-
-    elLoading.style.display = 'none';
-
-    var tzLabel = fmtTzLabel(offsetH);
-    elTzBadge.textContent = tzLabel;
-    document.getElementById('th-voc-start').textContent = '空亡開始（' + tzLabel + '）';
-    document.getElementById('th-voc-end').textContent   = '空亡結束（' + tzLabel + '）';
-
-    var startStr = fmtInputLocal();
-    elBadge.textContent = startStr + ' 起 3 天';
-
-    if (!vocList || vocList.length === 0) {
-      elEmpty.style.display = 'block';
-      elWrap.style.display  = 'none';
-      return;
-    }
-
-    elEmpty.style.display = 'none';
-    elWrap.style.display  = 'block';
-    elTbody.innerHTML     = '';
-
-    vocList.forEach(function (v, idx) {
-      var tr = document.createElement('tr');
-      if (v.isActiveAtInput) { tr.classList.add('voc-row-active'); }
-
-      mkTd(tr, idx + 1);
-      mkTd(tr, fmtWithTz(v.vocStart, offsetH), 'voc-time');
-
-      var aspName = (v.lastAspect && v.lastAspect.aspName) ? v.lastAspect.aspName : 'None';
-      var tdA = document.createElement('td');
-      tdA.innerHTML = '<span class="voc-asp-sym">' + (ASP_SYM[aspName] || '?') + '</span>'
-                    + '<span style="font-size:0.78rem;color:var(--color-muted);">' + aspName + '</span>';
-      tr.appendChild(tdA);
-
-      var tdP = document.createElement('td');
-      if (v.lastAspect && v.lastAspect.planetName) {
-        var pn = v.lastAspect.planetName;
-        tdP.innerHTML = '<span class="voc-moon">月亮</span> ↔ '
-                      + '<span class="voc-planet">' + (PLANET_ZH[pn] || pn) + '</span>';
-      } else { tdP.textContent = '—'; }
-      tr.appendChild(tdP);
-
-      mkTd(tr, fmtWithTz(v.vocEnd, offsetH), 'voc-time');
-
-      var tdSg = document.createElement('td');
-      tdSg.className = 'voc-sign';
-      tdSg.textContent = v.ingressSign
-        ? (SIGN_ZH[v.ingressSign] || v.ingressSign) + ' (' + v.ingressSign + ')'
-        : '—';
-      tr.appendChild(tdSg);
-
-      mkTd(tr, fmtDur(v.vocStart, v.vocEnd), 'voc-dur');
-
-      var tdSt = document.createElement('td');
-      tdSt.innerHTML = v.isActiveAtInput
-        ? '<span class="voc-active">🔴 空亡中</span>'
-        : '<span class="voc-ended">✅ 已結束</span>';
-      tr.appendChild(tdSt);
-
-      elTbody.appendChild(tr);
-    });
-  };
-
-  var calcAndRender = function () {
-    if (typeof MoonVOC === 'undefined' || typeof MoonVOC.calcAllVoc !== 'function') {
-      console.warn('[VOC] moon_voc.js 未載入');
-      return;
-    }
-    var utcEquiv = getUtcEquiv();
-    if (!utcEquiv) { return; }
-
-    var offsetH = getTzOffset();
-    showLoading();
-
-    setTimeout(function () {
-      try {
-        var rawList = MoonVOC.calcAllVoc(utcEquiv, 3);
-        var vocList = convertVocList(rawList, utcEquiv);
-        renderVoc(vocList, offsetH);
-      } catch (err) {
-        console.error('[VOC] 計算失敗：', err);
-        document.getElementById('voc-loading').style.display = 'none';
-        var el = document.getElementById('voc-empty');
-        el.style.display = 'block';
-        el.textContent   = '⚠️ 計算失敗：' + err.message;
-      }
-    }, 60);
-  };
-
-  var _timer = null;
-  var debouncedCalc = function () {
-    clearTimeout(_timer);
-    _timer = setTimeout(calcAndRender, 300);
-  };
-
-  var initVoc = function () {
-    var form = document.getElementById('form');
-    if (!form) { return; }
-    form.addEventListener('submit', function () { calcAndRender(); });
-    var ids = ['date-year', 'date-month', 'date-day', 'time-hour', 'time-minute', 'longitude'];
-    ids.forEach(function (id) {
-      var el = document.getElementById(id);
-      if (!el) { return; }
-      el.addEventListener('input', function () {
-        if (isReady()) { debouncedCalc(); }
-      });
-    });
-  };
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initVoc);
-  } else {
-    initVoc();
-  }
-
-}());
-</script>
+<!-- ═══════════════════════════════════════════════════════
+     [修正1] 所有 <script> 移到 </body> 前，確保 DOM 完全就緒
+     載入順序：依賴庫 → utility.js → 功能模組 → utility1.js（最後）
+     ═══════════════════════════════════════════════════════ -->
+<script src="./src/astrochart.js"></script>
+<script src="./src/astronomy_math.js"></script>
+<script src="./src/ephemeris-utilities.js"></script>
+<script src="./src/language.js"></script>
+<script src="./src/astronomy.browser.js"></script>
+<script src="./src/astro-houses.js"></script>
+<script src="./src/astro-angles.js"></script>
+<script src="./src/Aspect-Applying.js"></script>
+<script src="./utility.js"></script>
+<script src="./src/moon_voc.js"></script>
+<script src="./src/midpoint.js"></script>
+<script src="./src/midpoint-init.js"></script>
+<script src="./utility1.js"></script>
 
 </body>
 </html>

@@ -30,6 +30,10 @@
     {key:'biquintile',  angle:144, orb:2, level:'minor', symbol:'bQ'}
   ];
 
+  // [優化1] ASPECT_ANGLE_MAP 由 ASPECTS_DEF 動態產生，消除重複定義
+  var ASPECT_ANGLE_MAP = {};
+  ASPECTS_DEF.forEach(function(a) { ASPECT_ANGLE_MAP[a.key] = a.angle; });
+
   var ASTROCHART_PLANET_MAP = {
     sun:'Sun', moon:'Moon', mercury:'Mercury', venus:'Venus', mars:'Mars',
     jupiter:'Jupiter', saturn:'Saturn', uranus:'Uranus', neptune:'Neptune', pluto:'Pluto',
@@ -37,12 +41,20 @@
     asc:'Asc', mc:'Mc'
   };
 
-  var PLANET_CHINESE = {
-    'Sun':'日', 'Moon':'月', 'Mercury':'水', 'Venus':'金', 'Mars':'火',
-    'Jupiter':'木', 'Saturn':'土', 'Uranus':'天', 'Neptune':'海',
-    'Pluto':'冥', 'NNode':'北', 'Lilith':'莉',
-    'Asc':'升', 'Mc':'頂'
+  // [優化2] 只保留小寫 key 的 MATRIX_ABBR 作為單一來源
+  var MATRIX_ABBR = {
+    sun:'日', moon:'月', mercury:'水', venus:'金', mars:'火',
+    jupiter:'木', saturn:'土', uranus:'天', neptune:'海',
+    pluto:'冥', northNode:'北', lilith:'莉',
+    asc:'升', mc:'頂'
   };
+
+  // [優化2] PLANET_CHINESE 由 MATRIX_ABBR + ASTROCHART_PLANET_MAP 動態產生
+  var PLANET_CHINESE = {};
+  Object.keys(ASTROCHART_PLANET_MAP).forEach(function(lk) {
+    var uk = ASTROCHART_PLANET_MAP[lk]; // e.g. 'Sun'
+    if (MATRIX_ABBR[lk]) PLANET_CHINESE[uk] = MATRIX_ABBR[lk];
+  });
 
   var RULER_DISPLAY = {
     sun:     '☉ 太陽',
@@ -55,33 +67,6 @@
     uranus:  '♅ 天王星',
     neptune: '♆ 海王星',
     pluto:   '♇ 冥王星'
-  };
-
-  var ANGLES_I18N = {
-    zh: {
-      sectionTitle: '天文角點 Angles',
-      thAsc:        '上升 Asc',
-      thMc:         '天頂 MC',
-      thHd:         '地平度數',
-      thEd:         '黃道度數',
-      thDms:        '星座度分秒'
-    },
-    en: {
-      sectionTitle: 'Angles',
-      thAsc:        'Ascendant',
-      thMc:         'Midheaven (MC)',
-      thHd:         'Horizon Degrees',
-      thEd:         'Ecliptic Degrees',
-      thDms:        'Sign D° M\' S"'
-    },
-    es: {
-      sectionTitle: 'Ángulos',
-      thAsc:        'Ascendente',
-      thMc:         'Medio Cielo (MC)',
-      thHd:         'Grados Horizonte',
-      thEd:         'Grados Eclíptica',
-      thDms:        'Signo G° M\' S"'
-    }
   };
 
   var ASP_ZH = {
@@ -99,19 +84,6 @@
   };
 
   var MATRIX_KEYS = ['sun','moon','mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto','northNode','lilith','asc','mc'];
-
-  var MATRIX_ABBR = {
-    sun:'日', moon:'月', mercury:'水', venus:'金', mars:'火',
-    jupiter:'木', saturn:'土', uranus:'天', neptune:'海',
-    pluto:'冥', northNode:'北', lilith:'莉',
-    asc:'升', mc:'頂'
-  };
-
-  var ASPECT_ANGLE_MAP = {
-    conjunction:0, sextile:60, square:90, trine:120, opposition:180,
-    quincunx:150, semisextile:30, semisquare:45, sesquisquare:135,
-    quintile:72, biquintile:144
-  };
 
   var AVG_MOTION = {
     sun:       0.9856,
@@ -135,6 +107,19 @@
 
   function mod360(v) {
     return EphemerisUtils.mod360(v);
+  }
+
+  // [優化3] 抽出共用角距計算，消除三處重複
+  function angularDiff(lonA, lonB) {
+    var d = Math.abs(lonA - lonB);
+    return d > 180 ? 360 - d : d;
+  }
+
+  // [優化3] 共用的相位比對邏輯（供 calcAspects / buildAspectMatrix 共用）
+  function getEffectiveOrb(asp, orbOverrides) {
+    return (orbOverrides && orbOverrides[asp.key] != null)
+      ? orbOverrides[asp.key]
+      : asp.orb;
   }
 
   function localToUtcDate(dateStr, timeStr, geoLon) {
@@ -254,9 +239,12 @@
                  : (lon>=s || lon<e);
       if (inside) return i+1;
     }
-    var best=0, bestD=360;
-    for (var j=0;j<12;j++){var d=mod360(lon-mod360(cusps[j]));if(d<bestD){bestD=d;best=j;}}
-    return best+1;
+    var bestIdx=0, bestArc=360;
+    for (var j=0;j<12;j++){
+      var arc=mod360(lon-mod360(cusps[j]));
+      if(arc<bestArc){bestArc=arc;bestIdx=j;}
+    }
+    return bestIdx+1;
   }
 
   function getBodyTropicalLon(bodyKey, astroTime) {
@@ -293,21 +281,18 @@
     return diff<0;
   }
 
+  // [優化4] calcAspects：使用共用 angularDiff / getEffectiveOrb
   function calcAspects(bodyLons, includeMajor, includeMinor, orbOverrides) {
     var results=[], keys=Object.keys(bodyLons);
     for(var i=0;i<keys.length;i++){
       for(var j=i+1;j<keys.length;j++){
         if ((keys[i]==='asc'&&keys[j]==='mc')||(keys[i]==='mc'&&keys[j]==='asc')) continue;
-        var diff=Math.abs(bodyLons[keys[i]]-bodyLons[keys[j]]);
-        if(diff>180) diff=360-diff;
+        var diff = angularDiff(bodyLons[keys[i]], bodyLons[keys[j]]);
         ASPECTS_DEF.forEach(function(asp){
           if(asp.level==='major'&&!includeMajor) return;
           if(asp.level==='minor'&&!includeMinor) return;
-          var effectiveOrb = (orbOverrides && orbOverrides[asp.key] != null)
-            ? orbOverrides[asp.key]
-            : asp.orb;
-          var orb=Math.abs(diff-asp.angle);
-          if(orb<=effectiveOrb) results.push({
+          var orb = Math.abs(diff - asp.angle);
+          if(orb <= getEffectiveOrb(asp, orbOverrides)) results.push({
             body1:keys[i], body2:keys[j],
             aspect:asp.key, symbol:asp.symbol,
             orb:orb.toFixed(2), level:asp.level
@@ -324,25 +309,14 @@
     var _noRetro = {sun:1,moon:1,northNode:1,southNode:1,lilith:1,asc:1,mc:1};
     if (base !== 0 && !_noRetro[bodyKey] && astroTime) {
       try {
-        if (isRetrograde(bodyKey, astroTime)) {
-          base = -Math.abs(base);
-        }
+        if (isRetrograde(bodyKey, astroTime)) { base = -Math.abs(base); }
       } catch(e) {}
     }
     return base;
   }
 
   // ── UI 輔助 ──────────────────────────────────────────────────────
-
-  function updateAnglesI18n(lang) {
-    var labels = ANGLES_I18N[lang] || ANGLES_I18N['zh'];
-    document.getElementById('h-angles').textContent = labels.sectionTitle;
-    document.getElementById('th-asc').textContent   = labels.thAsc;
-    document.getElementById('th-mc').textContent    = labels.thMc;
-    document.getElementById('th-hd').textContent    = labels.thHd;
-    document.getElementById('th-ed').textContent    = labels.thEd;
-    document.getElementById('th-dms').textContent   = labels.thDms;
-  }
+  // [優化5] 移除已廢棄的 updateAnglesI18n / ANGLES_I18N
 
   function getDashArray(name) {
     var val = document.querySelector('input[name="dash-' + name + '"]:checked');
@@ -356,6 +330,7 @@
   }
 
   // ── 相位矩陣 ─────────────────────────────────────────────────────
+  // [優化4] buildAspectMatrix 直接複用 calcAspects，消除重複的 O(n²) 計算
 
   function buildAspectMatrix(allLons, inclMajor, inclMinor, orbOverrides) {
     var table = document.getElementById('aspect-matrix-table');
@@ -364,30 +339,22 @@
 
     var keys = MATRIX_KEYS.filter(function(k){ return allLons[k] != null; });
 
+    // 複用 calcAspects 結果，取每對行星中 orb 最小的相位
+    var aspects = calcAspects(allLons, inclMajor, inclMinor, orbOverrides);
     var aspMap = {};
-    for (var i = 0; i < keys.length; i++) {
-      for (var j = i + 1; j < keys.length; j++) {
-        if ((keys[i]==='asc'&&keys[j]==='mc')||(keys[i]==='mc'&&keys[j]==='asc')) continue;
-        var diff = Math.abs(allLons[keys[i]] - allLons[keys[j]]);
-        if (diff > 180) diff = 360 - diff;
-        var best = null, bestOrb = 999;
-        ASPECTS_DEF.forEach(function(asp) {
-          if (asp.level === 'major' && !inclMajor) return;
-          if (asp.level === 'minor' && !inclMinor) return;
-          var effectiveOrb = (orbOverrides && orbOverrides[asp.key] != null)
-            ? orbOverrides[asp.key] : asp.orb;
-          var orb = Math.abs(diff - asp.angle);
-          if (orb <= effectiveOrb && orb < bestOrb) {
-            bestOrb = orb;
-            best = asp;
-          }
-        });
-        if (best) {
-          aspMap[keys[i] + '||' + keys[j]] = best;
-          aspMap[keys[j] + '||' + keys[i]] = best;
+    aspects.forEach(function(asp) {
+      var k1 = asp.body1 + '||' + asp.body2;
+      var k2 = asp.body2 + '||' + asp.body1;
+      var existing = aspMap[k1];
+      if (!existing || parseFloat(asp.orb) < parseFloat(existing.orb)) {
+        var aspDef = null;
+        for (var i = 0; i < ASPECTS_DEF.length; i++) {
+          if (ASPECTS_DEF[i].key === asp.aspect) { aspDef = ASPECTS_DEF[i]; break; }
         }
+        aspMap[k1] = aspDef;
+        aspMap[k2] = aspDef;
       }
-    }
+    });
 
     var tbody = document.createElement('tbody');
     keys.forEach(function(rowKey, ri) {
@@ -468,8 +435,8 @@
     for (var i = 0; i < keys.length; i++) {
       for (var j = i + 1; j < keys.length; j++) {
         if ((keys[i]==='asc'&&keys[j]==='mc')||(keys[i]==='mc'&&keys[j]==='asc')) continue;
-        var diff = Math.abs(lonsForLines[keys[i]] - lonsForLines[keys[j]]);
-        if (diff > 180) diff = 360 - diff;
+        // [優化3] 使用共用 angularDiff
+        var diff = angularDiff(lonsForLines[keys[i]], lonsForLines[keys[j]]);
         aspSpecs.forEach(function(spec) {
           if (Math.abs(diff - spec.angle) <= spec.orb) {
             var key = spec.angle + '_' + keys[i] + '_' + keys[j];
@@ -592,9 +559,6 @@
   }
 
   // ── 圖形偵測 ─────────────────────────────────────────────────────
-  // 偵測：T-square（三刑會沖）、Grand Trine（大三角）、
-  //       Grand Sextile（六芒星60°三角）、Kite（風箏）
-  // 回傳陣列，每個元素 { type, label, symbol, bodies, description, color }
 
   function detectChartPatterns(allLons, orbOverrides) {
     var defaultOrbs = { opposition: 8, square: 8, trine: 8, sextile: 6 };
@@ -605,35 +569,23 @@
       sextile:    (orbOverrides && orbOverrides.sextile    != null) ? orbOverrides.sextile    : defaultOrbs.sextile
     };
 
-    // 取得有效行星（排除 southNode）
     var keys = Object.keys(allLons).filter(function(k) {
       return k !== 'southNode' && allLons[k] != null;
     });
 
-    var ABBR = MATRIX_ABBR;
-
-    // 輔助：計算兩點角距
-    function angDiff(a, b) {
-      var d = Math.abs(allLons[a] - allLons[b]);
-      if (d > 180) d = 360 - d;
-      return d;
-    }
-
-    // 輔助：是否符合某相位角度（含容忍度）
+    // [優化3] 使用模組層級的 angularDiff，移除內部重複定義
     function isAsp(a, b, angle, orb) {
-      return Math.abs(angDiff(a, b) - angle) <= orb;
+      return Math.abs(angularDiff(allLons[a], allLons[b]) - angle) <= orb;
     }
 
-    // 輔助：排除 Asc/MC 互相配對
     function notAscMc(a, b) {
       return !((a === 'asc' && b === 'mc') || (a === 'mc' && b === 'asc'));
     }
 
-    // 輔助：行星顯示名稱
-    function label(k) { return ABBR[k] || k; }
+    function label(k) { return MATRIX_ABBR[k] || k; }
 
     var found = [];
-    var usedSets = []; // 避免完全重複的組合
+    var usedSets = [];
 
     function setKey(arr) { return arr.slice().sort().join(','); }
     function alreadyFound(arr) {
@@ -643,13 +595,11 @@
     }
     function markFound(arr) { usedSets.push(setKey(arr)); }
 
-    // ── 1. T-square（三刑會沖）──────────────────────────────────
-    // 兩顆行星互對分(180°)，第三顆與兩者各呈四分(90°)
+    // ── 1. T-square
     for (var i = 0; i < keys.length; i++) {
       for (var j = i + 1; j < keys.length; j++) {
         if (!notAscMc(keys[i], keys[j])) continue;
         if (!isAsp(keys[i], keys[j], 180, orbs.opposition)) continue;
-        // 找頂點
         for (var k = 0; k < keys.length; k++) {
           if (k === i || k === j) continue;
           if (!notAscMc(keys[i], keys[k])) continue;
@@ -673,8 +623,7 @@
       }
     }
 
-    // ── 2. Grand Trine（大三角）────────────────────────────────
-    // 三顆行星互呈三分(120°)
+    // ── 2. Grand Trine
     for (var i = 0; i < keys.length; i++) {
       for (var j = i + 1; j < keys.length; j++) {
         if (!notAscMc(keys[i], keys[j])) continue;
@@ -701,9 +650,7 @@
       }
     }
 
-    // ── 3. Kite（風箏）─────────────────────────────────────────
-    // 大三角基礎上，第四顆行星與大三角其中一顆對分(180°)，
-    // 並與另外兩顆各呈六分(60°)
+    // ── 3. Kite
     for (var fi = 0; fi < found.length; fi++) {
       if (found[fi].type !== 'grandtrine') continue;
       var gt = found[fi].bodies;
@@ -734,45 +681,36 @@
       }
     }
 
-	// ── 插入位置：在「// ── 4. Grand Sextile」區塊之前 ──────────────
-	// 在 detectChartPatterns 函式內，Grand Trine 偵測之後加入此段
-
-	// ── 3b. Minor Grand Trine（小三角形）────────────────────────────
-	// 結構：一對三分相(120°) + 兩對六分相(60°)
-	// 三顆行星 A、B、C，其中 A△C（三分），A⚹B（六分），B⚹C（六分）
-	// B 位於 A 與 C 之間（六分相頂點，朝向星盤中心方向）
-	for (var i = 0; i < keys.length; i++) {
-	  for (var j = i + 1; j < keys.length; j++) {
-		if (!notAscMc(keys[i], keys[j])) continue;
-		// keys[i] 與 keys[j] 互呈三分相 → 作為底邊
-		if (!isAsp(keys[i], keys[j], 120, orbs.trine)) continue;
-		// 找頂點 keys[k]：與兩端各呈六分相
-		for (var k = 0; k < keys.length; k++) {
-		  if (k === i || k === j) continue;
-		  if (!notAscMc(keys[i], keys[k])) continue;
-		  if (!notAscMc(keys[j], keys[k])) continue;
-		  if (isAsp(keys[i], keys[k], 60, orbs.sextile) &&
-			  isAsp(keys[j], keys[k], 60, orbs.sextile)) {
-			var bodies = [keys[i], keys[j], keys[k]];
-			if (!alreadyFound(bodies)) {
-			  markFound(bodies);
-			  found.push({
-				type:        'minorgrandtrine',
-				label:       '小三角形 Minor Grand Trine',
-				symbol:      '▽',
-				bodies:      bodies,
-				description: label(keys[i]) + ' △ ' + label(keys[j])
-							 + '，頂點：' + label(keys[k])
-							 + '（' + label(keys[i]) + ' ⚹ ' + label(keys[k])
-							 + '，' + label(keys[j]) + ' ⚹ ' + label(keys[k]) + '）',
-				color:       '#87CEEB'
-			  });
-			}
-		  }
-		}
-	  }
-	}
-    
+    // ── 3b. Minor Grand Trine
+    for (var i = 0; i < keys.length; i++) {
+      for (var j = i + 1; j < keys.length; j++) {
+        if (!notAscMc(keys[i], keys[j])) continue;
+        if (!isAsp(keys[i], keys[j], 120, orbs.trine)) continue;
+        for (var k = 0; k < keys.length; k++) {
+          if (k === i || k === j) continue;
+          if (!notAscMc(keys[i], keys[k])) continue;
+          if (!notAscMc(keys[j], keys[k])) continue;
+          if (isAsp(keys[i], keys[k], 60, orbs.sextile) &&
+              isAsp(keys[j], keys[k], 60, orbs.sextile)) {
+            var bodies = [keys[i], keys[j], keys[k]];
+            if (!alreadyFound(bodies)) {
+              markFound(bodies);
+              found.push({
+                type:        'minorgrandtrine',
+                label:       '小三角形 Minor Grand Trine',
+                symbol:      '▽',
+                bodies:      bodies,
+                description: label(keys[i]) + ' △ ' + label(keys[j])
+                             + '，頂點：' + label(keys[k])
+                             + '（' + label(keys[i]) + ' ⚹ ' + label(keys[k])
+                             + '，' + label(keys[j]) + ' ⚹ ' + label(keys[k]) + '）',
+                color:       '#87CEEB'
+              });
+            }
+          }
+        }
+      }
+    }
 
     return found;
   }
@@ -846,16 +784,11 @@
     bodyKeys.forEach(function(key){
       var name = ASTROCHART_PLANET_MAP[key];
       if (name && allLons[key] != null) {
+        // [優化6] 直接複用 isRetrograde，移除重複的速度計算邏輯
         var speed = 1;
         if (global._lastAstroTime && !{northNode:1,lilith:1}[key]) {
           try {
-            var dt = 0.1;
-            var l1 = getBodyTropicalLon(key, new Astronomy.AstroTime(global._lastAstroTime.ut - dt));
-            var l2 = getBodyTropicalLon(key, new Astronomy.AstroTime(global._lastAstroTime.ut + dt));
-            var dv = l2 - l1;
-            if (dv > 180) dv -= 360;
-            if (dv < -180) dv += 360;
-            speed = dv < 0 ? -1 : 1;
+            speed = isRetrograde(key, global._lastAstroTime) ? -1 : 1;
           } catch(ex){}
         }
         planets[name] = [allLons[key], speed];
@@ -881,12 +814,9 @@
       aspectsConfig['biquintile']   = { degree: 144, orbit: 2, color: '#67e8f9' };
     }
 
-    var pointsColor   = '#f9d56e';
-    var _allLons      = allLons;
-    var _cuspsArr     = cuspsArr;
-    var _chartSize    = chartSize;
-    var _aspectStroke = aspectStroke;
+    var pointsColor = '#f9d56e';
 
+    // [優化7] 移除多餘的閉包變數複製，直接使用外層參數
     setTimeout(function() {
       try {
         if (typeof astrology === 'undefined' || !astrology.Chart) {
@@ -916,7 +846,7 @@
 
         requestAnimationFrame(function() {
           requestAnimationFrame(function() {
-            drawAspectLines(_allLons, _cuspsArr, _chartSize, _aspectStroke,
+            drawAspectLines(allLons, cuspsArr, chartSize, aspectStroke,
                             lineOpp, lineTrine, lineSquare, lineSextile,
                             dashOpp, dashTrine, dashSquare, dashSextile,
                             orbOpp, orbTrine, orbSquare, orbSextile);
@@ -978,40 +908,38 @@
     ASTROCHART_PLANET_MAP: ASTROCHART_PLANET_MAP,
     PLANET_CHINESE:        PLANET_CHINESE,
     RULER_DISPLAY:         RULER_DISPLAY,
-    ANGLES_I18N:           ANGLES_I18N,
     ASP_ZH:                ASP_ZH,
     MATRIX_KEYS:           MATRIX_KEYS,
     MATRIX_ABBR:           MATRIX_ABBR,
     ASPECT_ANGLE_MAP:      ASPECT_ANGLE_MAP,
     AVG_MOTION:            AVG_MOTION,
     // 函式
-    mod360:                        mod360,
-    localToUtcDate:                localToUtcDate,
-    t:                             t,
-    getSignForDD:                  getSignForDD,
-    ddToSignDMS:                   ddToSignDMS,
-    getSignLabel:                  getSignLabel,
-    getSignIngress:                getSignIngress,
-    calcDynamicAyanamsa:           calcDynamicAyanamsa,
-    toDisplayLon:                  toDisplayLon,
-    calcAngles:                    calcAngles,
-    calcHouseCusps:                calcHouseCusps,
-    getHouseNumber:                getHouseNumber,
-    getBodyTropicalLon:            getBodyTropicalLon,
-    isRetrograde:                  isRetrograde,
-    calcAspects:                   calcAspects,
-    dailyMotion:                   dailyMotion,
-    updateAnglesI18n:              updateAnglesI18n,
-    getDashArray:                  getDashArray,
-    getOrbValue:                   getOrbValue,
-    buildAspectMatrix:             buildAspectMatrix,
-    drawAspectLines:               drawAspectLines,
+    mod360:                          mod360,
+    localToUtcDate:                  localToUtcDate,
+    t:                               t,
+    getSignForDD:                    getSignForDD,
+    ddToSignDMS:                     ddToSignDMS,
+    getSignLabel:                    getSignLabel,
+    getSignIngress:                  getSignIngress,
+    calcDynamicAyanamsa:             calcDynamicAyanamsa,
+    toDisplayLon:                    toDisplayLon,
+    calcAngles:                      calcAngles,
+    calcHouseCusps:                  calcHouseCusps,
+    getHouseNumber:                  getHouseNumber,
+    getBodyTropicalLon:              getBodyTropicalLon,
+    isRetrograde:                    isRetrograde,
+    calcAspects:                     calcAspects,
+    dailyMotion:                     dailyMotion,
+    getDashArray:                    getDashArray,
+    getOrbValue:                     getOrbValue,
+    buildAspectMatrix:               buildAspectMatrix,
+    drawAspectLines:                 drawAspectLines,
     replacePlanetSymbolsWithChinese: replacePlanetSymbolsWithChinese,
-    applyingText:                  applyingText,
-    detectChartPatterns:           detectChartPatterns,
-    renderChartPatterns:           renderChartPatterns,
-    drawAstroChart:                drawAstroChart,
-    patchAstroChartSignSymbols:    patchAstroChartSignSymbols
+    applyingText:                    applyingText,
+    detectChartPatterns:             detectChartPatterns,
+    renderChartPatterns:             renderChartPatterns,
+    drawAstroChart:                  drawAstroChart,
+    patchAstroChartSignSymbols:      patchAstroChartSignSymbols
   };
 
 }(window));
