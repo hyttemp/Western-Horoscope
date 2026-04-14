@@ -9,8 +9,12 @@
  *   參與中點計算的天體：
  *     - #bodies-tbody  行星（太陽～冥王星）
  *     - #points-tbody  北交點、南交點、凱龍、莉莉絲…
- *     - #asc-b         上升點 ASC 黃道度數
- *     - #mc-b          天頂   MC  黃道度數
+ *     - #houses-tbody  第1宮起始度 → ASC、第10宮起始度 → MC
+ *
+ *  修正紀錄：
+ *    [Fix 1] setTimeout(500) → 改監聽 'chartReady' 自訂事件，確保 DOM 已填入
+ *    [Fix 2] #asc-b / #mc-b 不存在 → 改從 #houses-tbody 讀取 ASC(宮1) / MC(宮10)
+ *    [Fix 3] 加入 fallback：若 'chartReady' 未在 2000ms 內觸發，自動嘗試一次
  */
 (function () {
   'use strict';
@@ -20,7 +24,7 @@
     '太陽','月亮','水星','金星','火星',
     '木星','土星','天王星','海王星','冥王星',
     '北交點','南交點','凱龍','莉莉絲',
-    'ASC','MC'          // ★ 新增：角點排在最後
+    'ASC','MC'
   ];
 
   function getPlanetIndex(name) {
@@ -77,7 +81,7 @@
     return signEn;
   }
 
-  /* ── 從表格與角點元素收集所有天體度數 ── */
+  /* ── [Fix 2] 從表格與宮位讀取所有天體度數 ── */
   function collectPlanets() {
     var planets = {};
 
@@ -101,18 +105,24 @@
       if (pname && !isNaN(pdeg)) { planets[pname] = pdeg; }
     }
 
-    /* 3. ★ 上升點 ASC（黃道度數來自 #asc-b） */
-    var ascEl = document.getElementById('asc-b');
-    if (ascEl) {
-      var ascDeg = parseFloat(ascEl.textContent.trim());
-      if (!isNaN(ascDeg)) { planets['ASC'] = ascDeg; }
-    }
-
-    /* 4. ★ 天頂 MC（黃道度數來自 #mc-b） */
-    var mcEl = document.getElementById('mc-b');
-    if (mcEl) {
-      var mcDeg = parseFloat(mcEl.textContent.trim());
-      if (!isNaN(mcDeg)) { planets['MC'] = mcDeg; }
+    /*
+     * 3. [Fix 2] ASC / MC：從 #houses-tbody 讀取
+     *    宮位表欄位：宮 | 起始黃道° | 終止黃道° | 星座 | 宮主星 | 尊貴
+     *    第1宮起始度 → ASC
+     *    第10宮起始度 → MC
+     *
+     *    原本讀取 #asc-b / #mc-b，但這兩個 id 在 HTML 中不存在，
+     *    改為從宮位表格直接解析。
+     */
+    var hrows = document.querySelectorAll('#houses-tbody tr');
+    for (var h = 0; h < hrows.length; h++) {
+      var hcells = hrows[h].querySelectorAll('td');
+      if (hcells.length < 2) { continue; }
+      var houseNum = parseInt(hcells[0].textContent.trim(), 10);
+      var houseDeg = parseFloat(hcells[1].textContent.trim());
+      if (isNaN(houseDeg)) { continue; }
+      if (houseNum === 1)  { planets['ASC'] = houseDeg; }
+      if (houseNum === 10) { planets['MC']  = houseDeg; }
     }
 
     return planets;
@@ -147,19 +157,6 @@
       return;
     }
 
-    /*
-     * ★ 漢堡學派核心計算
-     *
-     * 軸1 = (A + B) / 2  mod 360
-     * 只檢查行星/角點 C 是否落在軸1的容許度內
-     * 只保留 Conjunction(0°) → 天體確實落在軸1上
-     *
-     * 參與計算的天體：行星 + 北交點等天體點 + ASC + MC
-     *
-     * planetGroupMap[triggerPlanet] = [
-     *   { key, midDeg, midSignEn, orbVal, others[] }, ...
-     * ]
-     */
     var planetGroupMap = {};
 
     for (var i = 0; i < plKeys.length; i++) {
@@ -168,7 +165,6 @@
         var pB  = plKeys[j];
         var key = pA + '/' + pB;
 
-        /* 計算中點軸1 = (A + B) / 2 */
         var mpResult = Midpoint.calcMidpoint(planets[pA], planets[pB]);
         var midDeg   = mpResult.degree;
 
@@ -178,10 +174,8 @@
           var pC = plKeys[k];
           if (pC === pA || pC === pB) { continue; }
 
-          /* ★ 只檢查軸1，不檢查對衝軸（+180°） */
           var aspects = Midpoint.checkAspects(midDeg, planets[pC], orb);
 
-          /* 只取 Conjunction（天體落在軸1上） */
           for (var a = 0; a < aspects.length; a++) {
             if (aspects[a].name === 'Conjunction') {
               allTriggers.push({
@@ -196,12 +190,10 @@
 
         if (allTriggers.length === 0) { continue; }
 
-        /* 依天體標準順序排列 */
         allTriggers.sort(function (a, b) {
           return getPlanetIndex(a.planet) - getPlanetIndex(b.planet);
         });
 
-        /* 每個觸發天體各自建立群組記錄 */
         for (var t = 0; t < allTriggers.length; t++) {
           var trigPlanet = allTriggers[t].planet;
           var trigOrb    = allTriggers[t].orbVal;
@@ -238,17 +230,14 @@
     elEmpty.style.display = 'none';
     elWrap.style.display  = 'block';
 
-    /* ★ 依天體標準順序排列群組 */
     groupPlanets.sort(function (a, b) {
       return getPlanetIndex(a) - getPlanetIndex(b);
     });
 
-    /* ── 渲染 ── */
     for (var g = 0; g < groupPlanets.length; g++) {
       var gPlanet  = groupPlanets[g];
       var gEntries = planetGroupMap[gPlanet];
 
-      /* 群組內依 orb 由小到大 */
       gEntries.sort(function (a, b) {
         return a.orbVal - b.orbVal;
       });
@@ -269,27 +258,22 @@
         var entry = gEntries[e];
         var tr    = document.createElement('tr');
 
-        /* td0：中點組合 */
         var td0 = document.createElement('td');
         td0.innerHTML = '<span class="mp-pair">' + entry.key + '</span>';
         tr.appendChild(td0);
 
-        /* td1：中點黃道度數 */
         var td1 = document.createElement('td');
         td1.innerHTML = '<span class="mp-deg">' + entry.midDeg.toFixed(2) + '°</span>';
         tr.appendChild(td1);
 
-        /* td2：星座 */
         var td2 = document.createElement('td');
         td2.innerHTML = '<span class="mp-sign">' + localizeSign(entry.midSignEn) + '</span>';
         tr.appendChild(td2);
 
-        /* td3：容許度 */
         var td3 = document.createElement('td');
         td3.innerHTML = '<span class="mp-trigger-orb">' + entry.orbVal.toFixed(2) + '°</span>';
         tr.appendChild(td3);
 
-        /* td4：同軸其他天體 */
         var td4 = document.createElement('td');
         td4.style.cssText = 'padding:4px 8px;';
         if (entry.others.length > 0) {
@@ -311,16 +295,40 @@
     }
   }
 
-  /* ── 初始化 ── */
+  /* 對外暴露，讓 utility.js 可直接呼叫 */
+  window.renderMidpoints = renderMidpoints;
+
+  /* ── [Fix 1] 改用 chartReady 事件 + fallback ── */
   function init() {
-    var form      = document.getElementById('form');
     var recalcBtn = document.getElementById('mp-recalc-btn');
 
+    /*
+     * [Fix 1] 主要觸發：監聽 utility.js 繪製完成後發出的 'chartReady' 事件
+     * utility.js 需在星盤渲染完成後加入：
+     *   document.dispatchEvent(new CustomEvent('chartReady'));
+     */
+    document.addEventListener('chartReady', function () {
+      renderMidpoints();
+    });
+
+    /*
+     * [Fix 3] Fallback：若 utility.js 沒有發出 chartReady，
+     * 在 form submit 後等待 1500ms 自動嘗試一次
+     */
+    var form = document.getElementById('form');
     if (form) {
       form.addEventListener('submit', function () {
-        setTimeout(renderMidpoints, 500);
+        setTimeout(function () {
+          /* 若 midpoint-section 仍是 none，代表 chartReady 未觸發，手動執行 */
+          var sec = document.getElementById('midpoint-section');
+          if (!sec || sec.style.display === 'none' || sec.style.display === '') {
+            renderMidpoints();
+          }
+        }, 1500);
       });
     }
+
+    /* 重新計算按鈕 */
     if (recalcBtn) {
       recalcBtn.addEventListener('click', renderMidpoints);
     }
