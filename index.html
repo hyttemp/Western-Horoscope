@@ -310,6 +310,31 @@
     .mp-planet   { color: var(--color-gold); }
     .mp-asp-name { color: #c084fc; font-weight: 600; }
     .mp-orb-val  { color: var(--color-muted); font-size: 0.78rem; }
+	
+/* 互容欄樣式 */
+.mutual-reception {
+  color: #c084fc;          /* 紫色，與 quincunx 相位同色系 */
+  font-weight: 600;
+  font-size: 0.80rem;
+  white-space: nowrap;
+}
+	
+/* 映點 / 反映點欄位 */
+.antiscia-cell {
+  color: #c084fc;          /* 紫色 */
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+.contra-antiscia-cell {
+  color: #67e8f9;          /* 青色 */
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+.antiscia-none {
+  color: var(--color-muted);
+  font-size: 0.78rem;
+}	
+	
   </style>
 </head>
 <body>
@@ -497,8 +522,8 @@
             <span>°</span>
           </div>
           <div class="dash-toggle">
-            <label><input type="radio" name="dash-square" value="solid" checked> 實線</label>
-            <label><input type="radio" name="dash-square" value="dash"> 虛線</label>
+            <label><input type="radio" name="dash-square" value="solid" > 實線</label>
+            <label><input type="radio" name="dash-square" value="dash" checked> 虛線</label>
           </div>
         </div>
         <div class="aspect-line-row">
@@ -509,12 +534,21 @@
             <span>°</span>
           </div>
           <div class="dash-toggle">
-            <label><input type="radio" name="dash-sextile" value="solid"> 實線</label>
-            <label><input type="radio" name="dash-sextile" value="dash" checked> 虛線</label>
+            <label><input type="radio" name="dash-sextile" value="solid" checked> 實線</label>
+            <label><input type="radio" name="dash-sextile" value="dash" > 虛線</label>
           </div>
         </div>
       </div>
 
+<div class="form-group" style="margin-top:6px;">
+  <label>映點容許度 Antiscia Orb</label>
+  <div class="orb-input-wrap">
+    <input id="antiscia-orb" type="number"
+           class="orb-input" min="0" max="5"
+           step="0.5" value="1">
+    <span>°</span>
+  </div>
+</div>
     </form>
   </div>
 
@@ -595,7 +629,7 @@
         <div class="table-card-head"><h3>宮位 Houses</h3></div>
         <div class="table-scroll">
           <table>
-            <thead><tr><th>宮</th><th>起始黃道°</th><th>終止黃道°</th><th>星座</th><th>宮主星</th><th>尊貴</th></tr></thead>
+            <thead><tr><th>宮</th><th>起始黃道°</th><th>終止黃道°</th><th>星座</th><th>宮主星</th><th>互容</th><th>尊貴</th></tr></thead>
             <tbody id="houses-tbody"></tbody>
           </table>
         </div>
@@ -605,7 +639,7 @@
         <div class="table-card-head"><h3>行星位置 Planets</h3></div>
         <div class="table-scroll">
           <table id="bodies-table">
-            <thead><tr><th>天體</th><th>黃道°</th><th>度分秒</th><th>宮位</th><th>順/逆</th></tr></thead>
+            <thead><tr><th>天體</th><th>黃道°</th><th>度分秒</th><th>宮位</th><th>順/逆</th><th>映點</th><th>反映點</th></tr></thead>
             <tbody id="bodies-tbody"></tbody>
           </table>
         </div>

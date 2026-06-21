@@ -68,6 +68,36 @@
     neptune: '♆ 海王星',
     pluto:   '♇ 冥王星'
   };
+  
+  // ── 主管星座對照表（modern，供互容偵測用）────────────────────────
+var SIGN_RULERS_MODERN = {
+  aries:       ['mars'],
+  taurus:      ['venus'],
+  gemini:      ['mercury'],
+  cancer:      ['moon'],
+  leo:         ['sun'],
+  virgo:       ['mercury'],
+  libra:       ['venus'],
+  scorpio:     ['pluto', 'mars'],
+  sagittarius: ['jupiter'],
+  capricorn:   ['saturn'],
+  aquarius:    ['uranus', 'saturn'],
+  pisces:      ['neptune', 'jupiter']
+};
+
+// 每顆行星主管哪些星座（modern）
+var PLANET_RULES_SIGNS = {
+  sun:     ['leo'],
+  moon:    ['cancer'],
+  mercury: ['gemini', 'virgo'],
+  venus:   ['taurus', 'libra'],
+  mars:    ['aries', 'scorpio'],
+  jupiter: ['sagittarius', 'pisces'],
+  saturn:  ['capricorn', 'aquarius'],
+  uranus:  ['aquarius'],
+  neptune: ['pisces'],
+  pluto:   ['scorpio']
+};
 
   var ASP_ZH = {
     conjunction:  '合',
@@ -762,6 +792,48 @@ function renderChartPatterns(patterns) {
   });
 }
 
+// ── 互容偵測 ──────────────────────────────────────────────────────
+function detectMutualReception(houseRulers, allLons) {
+  var result = {};
+
+  for (var i = 0; i < 12; i++) {
+    if (!houseRulers[i]) continue;
+
+    var planetA    = houseRulers[i].rulerKey;          // 第 i 宮的主星
+    var signA      = getSignForDD(allLons[planetA]);    // planetA 所在星座
+    if (!signA) continue;
+
+    // 找 signA 的主星（modern）
+    var rulersOfSignA = SIGN_RULERS_MODERN[signA.key] || [];
+
+    for (var r = 0; r < rulersOfSignA.length; r++) {
+      var planetB = rulersOfSignA[r];
+      if (planetB === planetA) continue;               // 同一顆星跳過
+      if (allLons[planetB] == null) continue;
+
+      var signB         = getSignForDD(allLons[planetB]);  // planetB 所在星座
+      var rulersOfSignB = SIGN_RULERS_MODERN[signB.key] || [];
+
+      // 互容條件：planetA 主管 signB，且 planetB 主管 signA
+      var aRulesB = (PLANET_RULES_SIGNS[planetA] || []).indexOf(signB.key) !== -1;
+      var bRulesA = rulersOfSignB.indexOf(planetA) !== -1;
+
+      if (aRulesB && bRulesA) {
+        var dispA = RULER_DISPLAY[planetA] || planetA;
+        var dispB = RULER_DISPLAY[planetB] || planetB;
+        result[i] = {
+          label:   dispA + ' ⇌ ' + dispB,
+          planetA: planetA,
+          planetB: planetB
+        };
+        break;  // 找到一組互容即可
+      }
+    }
+  }
+
+  return result;  // { 宮位index: { label, planetA, planetB } }
+}
+
 
 
   // ── 星盤繪製 ─────────────────────────────────────────────────────
@@ -902,6 +974,58 @@ function renderChartPatterns(patterns) {
       return _orig.call(this, name, x, y);
     };
   }
+  
+  // ── 映點 / 反映點 ────────────────────────────────────────────────
+// 計算單一經度的映點與反映點
+function calcAntiscia(lon) {
+  return mod360(180 - lon);
+}
+function calcContraAntiscia(lon) {
+  return mod360(360 - lon);
+}
+
+/**
+ * detectAntiscia(allLons, orb)
+ * 偵測所有行星對之間的映點 / 反映點關係
+ *
+ * @param {Object} allLons      - { sun: 75.3, moon: 120.5, ... }
+ * @param {number} orb          - 容許度（預設 1°）
+ * @returns {Object}            - { 'sun': [{partner:'moon', type:'antiscia', orb:'0.23'},…], … }
+ */
+function detectAntiscia(allLons, orb) {
+  orb = (orb != null) ? orb : 1;
+  var result = {};
+  var keys = Object.keys(allLons);
+
+  keys.forEach(function(k) { result[k] = []; });
+
+  for (var i = 0; i < keys.length; i++) {
+    for (var j = i + 1; j < keys.length; j++) {
+      var kA = keys[i], kB = keys[j];
+      var lonA = allLons[kA], lonB = allLons[kB];
+      if (lonA == null || lonB == null) continue;
+
+      // A 的映點 vs B 的位置
+      var antiA  = calcAntiscia(lonA);
+      var contraA = calcContraAntiscia(lonA);
+
+      var diffAnti  = Math.abs(angularDiff(antiA,  lonB));
+      var diffContra = Math.abs(angularDiff(contraA, lonB));
+
+      if (diffAnti <= orb) {
+        result[kA].push({ partner: kB, type: 'antiscia',       orb: diffAnti.toFixed(2) });
+        result[kB].push({ partner: kA, type: 'antiscia',       orb: diffAnti.toFixed(2) });
+      }
+      if (diffContra <= orb) {
+        result[kA].push({ partner: kB, type: 'contra-antiscia', orb: diffContra.toFixed(2) });
+        result[kB].push({ partner: kA, type: 'contra-antiscia', orb: diffContra.toFixed(2) });
+      }
+    }
+  }
+  return result;
+}
+
+// 在 return 物件中暴露（加入現有的 return { ... } 內）：
 
   // ── 公開 API ─────────────────────────────────────────────────────
 
@@ -943,7 +1067,13 @@ function renderChartPatterns(patterns) {
     detectChartPatterns:             detectChartPatterns,
     renderChartPatterns:             renderChartPatterns,
     drawAstroChart:                  drawAstroChart,
-    patchAstroChartSignSymbols:      patchAstroChartSignSymbols
+    patchAstroChartSignSymbols:      patchAstroChartSignSymbols,
+	detectMutualReception: detectMutualReception,
+	 calcAntiscia:      calcAntiscia,
+ calcContraAntiscia: calcContraAntiscia,
+ detectAntiscia:    detectAntiscia
+
+
   };
 
 }(window));
