@@ -191,217 +191,187 @@
 
     var aspects = AstroUtil.calcAspects(allLons, inclMajor, inclMinor, orbOverrides);
 
-// ── 宮位表 ──
-EL.housesTbody.innerHTML = '';
-var houseRulers = [];
-try {
-  houseRulers = AstroHouses.getAllHouseRulers(cusps, {
-    rulerMode: 'modern',
-    zodiac:    zodiac,
-    ayanamsa:  ayanamsa || null
-  });
-} catch(err) { console.warn('getAllHouseRulers 失敗：', err); }
+	// ── 宮位表 ──
+	EL.housesTbody.innerHTML = '';
+	var houseRulers = [];
+	try {
+	  houseRulers = AstroHouses.getAllHouseRulers(cusps, {
+		rulerMode: 'modern',
+		zodiac:    zodiac,
+		ayanamsa:  ayanamsa || null
+	  });
+	} catch(err) { console.warn('getAllHouseRulers 失敗：', err); }
 
-// 雙主星對照表
-var CO_RULERS = {
-  scorpio:  'mars',
-  aquarius: 'saturn',
-  pisces:   'jupiter'
-};
+	// 雙主星對照表
+	var CO_RULERS = {
+	  scorpio:  'mars',
+	  aquarius: 'saturn',
+	  pisces:   'jupiter'
+	};
 
-// 預先計算 12 宮的互容結果
-var mutualReceptions = AstroUtil.detectMutualReception(houseRulers, allLons);
+	// 預先計算 12 宮的互容結果
+	var mutualReceptions = AstroUtil.detectMutualReception(houseRulers, allLons);
 
-for (var i = 0; i < 12; i++) {
-  var hRow = EL.housesTbody.insertRow();
-  hRow.insertCell().textContent = AstroUtil.t('house' + (i + 1), lang);
-  hRow.insertCell().textContent = cusps[i].toFixed(4);
-  hRow.insertCell().textContent = cusps[(i + 1) % 12].toFixed(4);
-  hRow.insertCell().textContent =
-    AstroUtil.getSignLabel(cusps[i], lang) + ' ' +
-    AstroUtil.getSignIngress(cusps[i]);
+	for (var i = 0; i < 12; i++) {
+	  var hRow = EL.housesTbody.insertRow();
+	  hRow.insertCell().textContent = AstroUtil.t('house' + (i + 1), lang);
+	  hRow.insertCell().textContent = cusps[i].toFixed(4);
+	  hRow.insertCell().textContent = cusps[(i + 1) % 12].toFixed(4);
+	  hRow.insertCell().textContent =
+		AstroUtil.getSignLabel(cusps[i], lang) + ' ' +
+		AstroUtil.getSignIngress(cusps[i]);
 
-  // ── 宮主星欄（含雙主星）──
-  var rulerCell = hRow.insertCell();
-  rulerCell.className = 'ruler-cell';
+	  // ── 宮主星欄（含雙主星）──
+	  var rulerCell = hRow.insertCell();
+	  rulerCell.className = 'ruler-cell';
 
-  if (houseRulers[i]) {
-    var primaryRuler = AstroUtil.RULER_DISPLAY[houseRulers[i].rulerKey]
-                       || houseRulers[i].rulerKey;
-    var signKey    = AstroUtil.getSignForDD(cusps[i]).key;
-    var coRulerKey = CO_RULERS[signKey];
+	  if (houseRulers[i]) {
+		var primaryRuler = AstroUtil.RULER_DISPLAY[houseRulers[i].rulerKey]
+						   || houseRulers[i].rulerKey;
+		var signKey    = AstroUtil.getSignForDD(cusps[i]).key;
+		var coRulerKey = CO_RULERS[signKey];
 
-    if (coRulerKey) {
-      var coRulerDisplay = AstroUtil.RULER_DISPLAY[coRulerKey] || coRulerKey;
-      rulerCell.textContent = primaryRuler + ' / ' + coRulerDisplay;
-    } else {
-      rulerCell.textContent = primaryRuler;
-    }
-  } else {
-    rulerCell.textContent = '—';
-  }
+		if (coRulerKey) {
+		  var coRulerDisplay = AstroUtil.RULER_DISPLAY[coRulerKey] || coRulerKey;
+		  rulerCell.textContent = primaryRuler + ' / ' + coRulerDisplay;
+		} else {
+		  rulerCell.textContent = primaryRuler;
+		}
+	  } else {
+		rulerCell.textContent = '—';
+	  }
 
-  // ── 互容欄 ──
-  var mrCell = hRow.insertCell();
-  var mrData = mutualReceptions[i];
-  if (mrData) {
-    mrCell.textContent = mrData.label;
-    mrCell.className   = 'mutual-reception';
-    mrCell.title       = '互容：兩顆行星各自落在對方主管的星座';
-  } else {
-    mrCell.textContent = '';
-    mrCell.className   = 'dignity-peregrine';
-  }
-
-
-  // ── 尊貴欄 ──
-  var dignityCell = hRow.insertCell();
-  if (houseRulers[i]) {
-    var rulerPlanet = houseRulers[i].rulerKey;
-    var rulerLon    = allLons[rulerPlanet];
-    if (rulerLon !== null && rulerLon !== undefined) {
-      var rulerSign = AstroHouses.getZodiacSign({
-        decimalDegrees: rulerLon,
-        zodiac:         zodiac,
-        ayanamsa:       zodiac === 'sidereal' ? ayanamsa : null
-      });
-      var rulerHouseNum = AstroUtil.getHouseNumber(rulerLon, cusps);
-      var dignityResult = AstroHouses.getPlanetDignity(rulerPlanet, rulerSign.key, lang);
-      var houseLabel    = lang === 'zh'
-        ? '第' + rulerHouseNum + '宮' : 'House ' + rulerHouseNum;
-      var dKey = dignityResult.dignityKey;
-      dignityCell.textContent = (dKey === 'peregrine')
-        ? ''
-        : dignityResult.dignityLabel + ' ( ' + dignityResult.sign + ' · ' + houseLabel + ' ) ';
-      if      (dKey === 'domicile')   dignityCell.className = 'dignity-domicile';
-      else if (dKey === 'exaltation') dignityCell.className = 'dignity-exaltation';
-      else if (dKey === 'detriment')  dignityCell.className = 'dignity-detriment';
-      else if (dKey === 'fall')       dignityCell.className = 'dignity-fall';
-      else                            dignityCell.className = 'dignity-peregrine';
-    } else {
-      dignityCell.textContent = '—';
-    }
-  } else {
-    dignityCell.textContent = '—';
-  }
+	  // ── 互容欄 ──
+	  var mrCell = hRow.insertCell();
+	  var mrData = mutualReceptions[i];
+	  if (mrData) {
+		mrCell.textContent = mrData.label;
+		mrCell.className   = 'mutual-reception';
+		mrCell.title       = '互容：兩顆行星各自落在對方主管的星座';
+	  } else {
+		mrCell.textContent = '';
+		mrCell.className   = 'dignity-peregrine';
+	  }
 
 
-} // for
+	  // ── 尊貴欄 ──
+	  var dignityCell = hRow.insertCell();
+	  if (houseRulers[i]) {
+		var rulerPlanet = houseRulers[i].rulerKey;
+		var rulerLon    = allLons[rulerPlanet];
+		if (rulerLon !== null && rulerLon !== undefined) {
+		  var rulerSign = AstroHouses.getZodiacSign({
+			decimalDegrees: rulerLon,
+			zodiac:         zodiac,
+			ayanamsa:       zodiac === 'sidereal' ? ayanamsa : null
+		  });
+		  var rulerHouseNum = AstroUtil.getHouseNumber(rulerLon, cusps);
+		  var dignityResult = AstroHouses.getPlanetDignity(rulerPlanet, rulerSign.key, lang);
+		  var houseLabel    = lang === 'zh'
+			? '第' + rulerHouseNum + '宮' : 'House ' + rulerHouseNum;
+		  var dKey = dignityResult.dignityKey;
+		  dignityCell.textContent = (dKey === 'peregrine')
+			? ''
+			: dignityResult.dignityLabel + ' ( ' + dignityResult.sign + ' · ' + houseLabel + ' ) ';
+		  if      (dKey === 'domicile')   dignityCell.className = 'dignity-domicile';
+		  else if (dKey === 'exaltation') dignityCell.className = 'dignity-exaltation';
+		  else if (dKey === 'detriment')  dignityCell.className = 'dignity-detriment';
+		  else if (dKey === 'fall')       dignityCell.className = 'dignity-fall';
+		  else                            dignityCell.className = 'dignity-peregrine';
+		} else {
+		  dignityCell.textContent = '—';
+		}
+	  } else {
+		dignityCell.textContent = '—';
+	  }
 
 
-    // // ── 行星表 ──
-    // EL.bodiesTbody.innerHTML = '';
+	} // for
 
-    // var ascRow = EL.bodiesTbody.insertRow();
-    // ascRow.insertCell().textContent = '上升 Asc';
-    // ascRow.insertCell().textContent = ascDisplay.toFixed(4);
-    // ascRow.insertCell().textContent = AstroUtil.ddToSignDMS(ascDisplay, lang);
-    // ascRow.insertCell().textContent = '—';
-    // ascRow.insertCell().textContent = '—';
-
-    // var mcRow = EL.bodiesTbody.insertRow();
-    // mcRow.insertCell().textContent = '天頂 MC';
-    // mcRow.insertCell().textContent = mcDisplay.toFixed(4);
-    // mcRow.insertCell().textContent = AstroUtil.ddToSignDMS(mcDisplay, lang);
-    // mcRow.insertCell().textContent = '—';
-    // mcRow.insertCell().textContent = '—';
-
-    // BODY_KEYS.forEach(function(key) {
-      // var lon   = allLons[key];
-      // var bRow  = EL.bodiesTbody.insertRow();
-      // var retro = AstroUtil.isRetrograde(key, astroTime);
-      // bRow.insertCell().textContent = AstroUtil.t(key, lang);
-      // bRow.insertCell().textContent = lon.toFixed(4);
-      // bRow.insertCell().textContent = AstroUtil.ddToSignDMS(lon, lang);
-      // bRow.insertCell().textContent =
-        // AstroUtil.t('house' + AstroUtil.getHouseNumber(lon, cusps), lang);
-      // var retroCell = bRow.insertCell();
-      // retroCell.textContent = retro ? '逆 R' : '順 D';
-      // retroCell.className   = retro ? 'retro' : 'direct';
-    // });
 	
 	// ── 行星表 ── （在 runChart() 內，建立 allLons 之後呼叫）
+	EL.bodiesTbody.innerHTML = '';
 
-// 計算映點 / 反映點偵測結果（容許度從 UI 讀取，預設 1°）
-var antisciOrb = parseFloat(
-  (document.getElementById('antiscia-orb') || {}).value
-) || 1;
-var antisciMap = AstroUtil.detectAntiscia(allLons, antisciOrb);
+	// 計算映點 / 反映點偵測結果（容許度從 UI 讀取，預設 1°）
+	var antisciOrb = parseFloat(
+	  (document.getElementById('antiscia-orb') || {}).value
+	) || 1;
+	var antisciMap = AstroUtil.detectAntiscia(allLons, antisciOrb);
 
-// 輔助：將偵測結果陣列轉成顯示字串
-function formatAntisciaCell(list, lang) {
-  if (!list || list.length === 0) return null;
-  return list.map(function(item) {
-    return AstroUtil.t(item.partner, lang) + ' (' + item.orb + '°)';
-  }).join('、');
-}
+	// 輔助：將偵測結果陣列轉成顯示字串
+	function formatAntisciaCell(list, lang) {
+	  if (!list || list.length === 0) return null;
+	  return list.map(function(item) {
+		return AstroUtil.t(item.partner, lang) + ' (' + item.orb + '°)';
+	  }).join('、');
+	}
 
-// ── 上升 Asc 列 ──
-var ascRow = EL.bodiesTbody.insertRow();
-ascRow.insertCell().textContent = '上升 Asc';
-ascRow.insertCell().textContent = ascDisplay.toFixed(4);
-ascRow.insertCell().textContent = AstroUtil.ddToSignDMS(ascDisplay, lang);
-ascRow.insertCell().textContent = '—';
-ascRow.insertCell().textContent = '—';
-// 映點欄
-var ascAntiCell  = ascRow.insertCell();
-var ascContraCell = ascRow.insertCell();
-var ascAntiList  = (antisciMap['asc'] || []).filter(function(x){ return x.type === 'antiscia'; });
-var ascContraList = (antisciMap['asc'] || []).filter(function(x){ return x.type === 'contra-antiscia'; });
-var ascAntiStr   = formatAntisciaCell(ascAntiList, lang);
-var ascContraStr = formatAntisciaCell(ascContraList, lang);
-ascAntiCell.textContent  = ascAntiStr  || '—';
-ascContraCell.textContent = ascContraStr || '—';
-ascAntiCell.className    = ascAntiStr  ? 'antiscia-cell'        : 'antiscia-none';
-ascContraCell.className  = ascContraStr ? 'contra-antiscia-cell' : 'antiscia-none';
+	// ── 上升 Asc 列 ──
+	var ascRow = EL.bodiesTbody.insertRow();
+	ascRow.insertCell().textContent = '上升 Asc';
+	ascRow.insertCell().textContent = ascDisplay.toFixed(4);
+	ascRow.insertCell().textContent = AstroUtil.ddToSignDMS(ascDisplay, lang);
+	ascRow.insertCell().textContent = '—';
+	ascRow.insertCell().textContent = '—';
+	// 映點欄
+	var ascAntiCell  = ascRow.insertCell();
+	var ascContraCell = ascRow.insertCell();
+	var ascAntiList  = (antisciMap['asc'] || []).filter(function(x){ return x.type === 'antiscia'; });
+	var ascContraList = (antisciMap['asc'] || []).filter(function(x){ return x.type === 'contra-antiscia'; });
+	var ascAntiStr   = formatAntisciaCell(ascAntiList, lang);
+	var ascContraStr = formatAntisciaCell(ascContraList, lang);
+	ascAntiCell.textContent  = ascAntiStr  || '—';
+	ascContraCell.textContent = ascContraStr || '—';
+	ascAntiCell.className    = ascAntiStr  ? 'antiscia-cell'        : 'antiscia-none';
+	ascContraCell.className  = ascContraStr ? 'contra-antiscia-cell' : 'antiscia-none';
 
-// ── 天頂 MC 列 ──
-var mcRow = EL.bodiesTbody.insertRow();
-mcRow.insertCell().textContent = '天頂 MC';
-mcRow.insertCell().textContent = mcDisplay.toFixed(4);
-mcRow.insertCell().textContent = AstroUtil.ddToSignDMS(mcDisplay, lang);
-mcRow.insertCell().textContent = '—';
-mcRow.insertCell().textContent = '—';
-var mcAntiCell   = mcRow.insertCell();
-var mcContraCell = mcRow.insertCell();
-var mcAntiList   = (antisciMap['mc'] || []).filter(function(x){ return x.type === 'antiscia'; });
-var mcContraList = (antisciMap['mc'] || []).filter(function(x){ return x.type === 'contra-antiscia'; });
-var mcAntiStr    = formatAntisciaCell(mcAntiList, lang);
-var mcContraStr  = formatAntisciaCell(mcContraList, lang);
-mcAntiCell.textContent   = mcAntiStr   || '—';
-mcContraCell.textContent = mcContraStr || '—';
-mcAntiCell.className     = mcAntiStr   ? 'antiscia-cell'        : 'antiscia-none';
-mcContraCell.className   = mcContraStr ? 'contra-antiscia-cell' : 'antiscia-none';
+	// ── 天頂 MC 列 ──
+	var mcRow = EL.bodiesTbody.insertRow();
+	mcRow.insertCell().textContent = '天頂 MC';
+	mcRow.insertCell().textContent = mcDisplay.toFixed(4);
+	mcRow.insertCell().textContent = AstroUtil.ddToSignDMS(mcDisplay, lang);
+	mcRow.insertCell().textContent = '—';
+	mcRow.insertCell().textContent = '—';
+	var mcAntiCell   = mcRow.insertCell();
+	var mcContraCell = mcRow.insertCell();
+	var mcAntiList   = (antisciMap['mc'] || []).filter(function(x){ return x.type === 'antiscia'; });
+	var mcContraList = (antisciMap['mc'] || []).filter(function(x){ return x.type === 'contra-antiscia'; });
+	var mcAntiStr    = formatAntisciaCell(mcAntiList, lang);
+	var mcContraStr  = formatAntisciaCell(mcContraList, lang);
+	mcAntiCell.textContent   = mcAntiStr   || '—';
+	mcContraCell.textContent = mcContraStr || '—';
+	mcAntiCell.className     = mcAntiStr   ? 'antiscia-cell'        : 'antiscia-none';
+	mcContraCell.className   = mcContraStr ? 'contra-antiscia-cell' : 'antiscia-none';
 
-// ── 各行星列 ──
-BODY_KEYS.forEach(function(key) {
-  var lon   = allLons[key];
-  var bRow  = EL.bodiesTbody.insertRow();
-  var retro = AstroUtil.isRetrograde(key, astroTime);
+	// ── 各行星列 ──
+	BODY_KEYS.forEach(function(key) {
+	  var lon   = allLons[key];
+	  var bRow  = EL.bodiesTbody.insertRow();
+	  var retro = AstroUtil.isRetrograde(key, astroTime);
 
-  bRow.insertCell().textContent = AstroUtil.t(key, lang);
-  bRow.insertCell().textContent = lon.toFixed(4);
-  bRow.insertCell().textContent = AstroUtil.ddToSignDMS(lon, lang);
-  bRow.insertCell().textContent =
-    AstroUtil.t('house' + AstroUtil.getHouseNumber(lon, cusps), lang);
+	  bRow.insertCell().textContent = AstroUtil.t(key, lang);
+	  bRow.insertCell().textContent = lon.toFixed(4);
+	  bRow.insertCell().textContent = AstroUtil.ddToSignDMS(lon, lang);
+	  bRow.insertCell().textContent =
+		AstroUtil.t('house' + AstroUtil.getHouseNumber(lon, cusps), lang);
 
-  var retroCell = bRow.insertCell();
-  retroCell.textContent = retro ? '逆 R' : '順 D';
-  retroCell.className   = retro ? 'retro' : 'direct';
+	  var retroCell = bRow.insertCell();
+	  retroCell.textContent = retro ? '逆 R' : '順 D';
+	  retroCell.className   = retro ? 'retro' : 'direct';
 
-  // 映點欄
-  var antiCell   = bRow.insertCell();
-  var contraCell = bRow.insertCell();
-  var antiList   = (antisciMap[key] || []).filter(function(x){ return x.type === 'antiscia'; });
-  var contraList = (antisciMap[key] || []).filter(function(x){ return x.type === 'contra-antiscia'; });
-  var antiStr    = formatAntisciaCell(antiList, lang);
-  var contraStr  = formatAntisciaCell(contraList, lang);
+	  // 映點欄
+	  var antiCell   = bRow.insertCell();
+	  var contraCell = bRow.insertCell();
+	  var antiList   = (antisciMap[key] || []).filter(function(x){ return x.type === 'antiscia'; });
+	  var contraList = (antisciMap[key] || []).filter(function(x){ return x.type === 'contra-antiscia'; });
+	  var antiStr    = formatAntisciaCell(antiList, lang);
+	  var contraStr  = formatAntisciaCell(contraList, lang);
 
-  antiCell.textContent   = antiStr   || '—';
-  contraCell.textContent = contraStr || '—';
-  antiCell.className     = antiStr   ? 'antiscia-cell'        : 'antiscia-none';
-  contraCell.className   = contraStr ? 'contra-antiscia-cell' : 'antiscia-none';
-});
+	  antiCell.textContent   = antiStr   || '—';
+	  contraCell.textContent = contraStr || '—';
+	  antiCell.className     = antiStr   ? 'antiscia-cell'        : 'antiscia-none';
+	  contraCell.className   = contraStr ? 'contra-antiscia-cell' : 'antiscia-none';
+	});
 
     // ── 天體點表 ──
     EL.pointsTbody.innerHTML = '';
